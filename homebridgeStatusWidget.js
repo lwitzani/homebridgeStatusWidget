@@ -2,7 +2,8 @@
 // All infos shown are based and provided by the Homebridge Config UI X found at https://github.com/oznu/homebridge-config-ui-x
 // Thanks to the github user oznu for providing such a nice programm!
 // This script does not work if you don't have the Homebridge service (Homebridge Config UI X) running
-
+// This script was developed with Homebridge Config UI X in version 4.32.0 (2020-11-06)
+// Maybe you need to update the UI-service if this script does not work for you
 
 // CONFIGURATION //////////////////////
 // you must at least configure the next 3 lines to make this script work

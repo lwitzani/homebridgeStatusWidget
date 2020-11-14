@@ -5,6 +5,7 @@
 - All infos shown are based and provided by the Homebridge Config UI X found at https://github.com/oznu/homebridge-config-ui-x
 - Thanks to the github user oznu for providing such a nice programm!
 - This script does not work if you don't have the Homebridge service (Homebridge Config UI X) running
+- This script was developed with Homebridge Config UI X in version 4.32.0 (2020-11-06). Maybe you need to update the UI-service if this script does not work for you.
 - also thanks to github user kevinkub for providing a line chart example at https://gist.github.com/kevinkub/b74f9c16f050576ae760a7730c19b8e2
 
 # How to use
