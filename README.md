@@ -1,7 +1,7 @@
 ![](widget.jpg)
 
 # Homebridge Status Widget
-- Script for the iOS App Scriptable that shows a small summary of your Homebrige instance
+- Script for the iOS App Scriptable that shows a small summary of your Homebridge instance
 - All infos shown are based and provided by the Homebridge Config UI X found at https://github.com/oznu/homebridge-config-ui-x
 - Thanks to the github user oznu for providing such a nice programm!
 - This script does not work if you don't have the Homebridge service (Homebridge Config UI X) running
@@ -9,8 +9,8 @@
 
 # How to use
 - you actually only need to configure 
-   - the **location** of the system running the Homebridge Config UI X (the hb-service)
-   - **username** of the administrator of the hb-service
+   - the **URL** of the system running the Homebridge Config UI X (the hb-service), including the port e.g. http://192.168.178.33:8581
+   - **username** of the administrator of the hb-service (not the actual linux user)
    - **password** of the administrator of the hb-service
 - the residual parameter can be tweaked a bit for your needs
    - e.g. the systemGuiName, the name of your system running the Homebridge Config UI X (the hb-service)
@@ -20,7 +20,7 @@
 # Infos shown in the widget
 - if Homebridge is running
 - if Homebridge is up to date
-- if all of the installed plugins (including Homebridge Config UI X) are up tp date
+- if all of the installed plugins (including Homebridge Config UI X) are up to date
 - if node.js is up to date
 - CPU load
 - CPU temperature

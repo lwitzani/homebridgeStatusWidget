@@ -17,15 +17,16 @@ const maxLineWidth = 310; // if layout doesn't look good for you,
 const normalLineHeight = 35; // try to tweak the (font-)sizes & remove/add spaces below
 // CONFIGURATION END //////////////////////
 
-const authUrl = hbServiceMachineBaseUrl + '/api/auth/login'
+const authUrl = hbServiceMachineBaseUrl + '/api/auth/login';
 const cpuUrl = hbServiceMachineBaseUrl + '/api/status/cpu';
-const hbStatusUrl = hbServiceMachineBaseUrl + '/api/status/homebridge'
-const ramUrl = hbServiceMachineBaseUrl + '/api/status/ram'
-const uptimeUrl = hbServiceMachineBaseUrl + '/api/status/uptime'
-const pluginsUrl = hbServiceMachineBaseUrl + '/api/plugins'
-const hbVersionUrl = hbServiceMachineBaseUrl + '/api/status/homebridge-version'
+const hbStatusUrl = hbServiceMachineBaseUrl + '/api/status/homebridge';
+const ramUrl = hbServiceMachineBaseUrl + '/api/status/ram';
+const uptimeUrl = hbServiceMachineBaseUrl + '/api/status/uptime';
+const pluginsUrl = hbServiceMachineBaseUrl + '/api/plugins';
+const hbVersionUrl = hbServiceMachineBaseUrl + '/api/status/homebridge-version';
+const nodeJsUrl = hbServiceMachineBaseUrl + '/api/status/nodejs';
 // logo is downloaded only the first time! It is saved in iCloud and then loaded from there everytime afterwards
-const logoUrl = 'https://github.com/homebridge/branding/blob/master/logos/homebridge-silhouette-round-white.png?raw=true'
+const logoUrl = 'https://github.com/homebridge/branding/blob/master/logos/homebridge-silhouette-round-white.png?raw=true';
 
 const timeFormatter = new DateFormatter();
 timeFormatter.dateFormat = 'dd.MM.yyyy HH:mm:ss';
@@ -119,8 +120,8 @@ async function createWidget() {
     let titleStack = widget.addStack();
     titleStack.size = new Size(maxLineWidth, normalLineHeight);
     const logo = await getHbLogo();
-    const imgwidget = titleStack.addImage(logo);
-    imgwidget.imageSize = new Size(40, 30);
+    const imgWidget = titleStack.addImage(logo);
+    imgWidget.imageSize = new Size(40, 30);
 
     let headerText = titleStack.addText(' Homebridge ');
     headerText.font = headerFont;
@@ -138,13 +139,14 @@ async function createWidget() {
     let hbStatus = await getHomebridgeStatus(token);
     let hbUpToDate = await getHomebridgeUpToDate(token);
     let pluginsUpToDate = await getPluginsUpToDate(token);
+    let nodeJsUpToDate = await getNodeJsUpToDate(token);
     let cpuData = await fetchData(token, cpuUrl);
     let ramData = await fetchData(token, ramUrl);
     let usedRamText = await getUsedRamString(ramData);
     let uptimeText = await getUptimeString(token);
 
     // STATUS PANEL IN THE HEADER //////////////////////
-    let statusInfo = titleStack.addText(hbStatus + 'Running         ' + hbUpToDate + 'UTD\n' + pluginsUpToDate + 'Plugins UTD  ' + hbUpToDate + 'Node.js UTD');
+    let statusInfo = titleStack.addText(hbStatus + 'Running         ' + hbUpToDate + 'UTD\n' + pluginsUpToDate + 'Plugins UTD  ' + nodeJsUpToDate + 'Node.js UTD');
     statusInfo.font = monospacedHeaderFont;
     statusInfo.size = new Size(155, 30);
     statusInfo.color = fontColorWhite;
@@ -269,6 +271,11 @@ async function getHomebridgeStatus(token) {
 async function getHomebridgeUpToDate(token) {
     const hbVersionData = await fetchData(token, hbVersionUrl);
     return hbVersionData.updateAvailable ? '❌' : '✅';
+}
+
+async function getNodeJsUpToDate(token) {
+    const nodeJsData = await fetchData(token, nodeJsUrl);
+    return nodeJsData.updateAvailable ? '❌' : '✅';
 }
 
 async function getPluginsUpToDate(token) {
