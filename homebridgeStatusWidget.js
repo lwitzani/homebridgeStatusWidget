@@ -2,8 +2,8 @@
 // All infos shown are based and provided by the Homebridge Config UI X found at https://github.com/oznu/homebridge-config-ui-x
 // Thanks to the github user oznu for providing such a nice programm!
 // This script does not work if you don't have the Homebridge service (Homebridge Config UI X) running
-// This script was developed with Homebridge Config UI X in version 4.32.0 (2020-11-06)
-// Maybe you need to update the UI-service if this script does not work for you
+// This script was developed with Homebridge Config UI X in version 4.32.0 (2020-11-06) and Scriptable app in version 1.6.1 on iOS 14.2
+// Maybe you need to update the UI-service OR the Scriptable app OR your iPhone if this script does not work for you
 
 // CONFIGURATION //////////////////////
 // you must at least configure the next 3 lines to make this script work
@@ -12,6 +12,7 @@ const userName = '>enter username here<'; // username of administrator of the hb
 const password = '>enter password here<'; // password of administrator of the hb-service
 
 const systemGuiName = 'Raspberry Pi' // name of the system your service is running on
+const temperatureUnitConfig = 'CELSIUS'; // options are CELSIUS or FAHRENHEIT
 const requestTimeoutInterval = 1; // in seconds; If requests take longer, the script is stopped. Increase it if it doesn't work or you
 const decimalChar = ','; // if you like a dot as decimal separator make the comma to a dot here
 const maxLineWidth = 310; // if layout doesn't look good for you,
@@ -204,7 +205,7 @@ async function createWidget() {
     let row3Stack = widget.addStack();
     row3Stack.size = new Size(maxLineWidth, 30);
 
-    let cpuTempText = row3Stack.addText('CPU Temp: ' + getAsRoundedString(cpuData.cpuTemperature.main, 1) + '°C               ');
+    let cpuTempText = row3Stack.addText('CPU Temp: ' + getTemperatureString(cpuData.cpuTemperature.main) + '               ');
     cpuTempText.font = infoFont;
     cpuTempText.size = new Size(150, 30);
     cpuTempText.color = fontColorWhite;
@@ -382,4 +383,16 @@ function getMaxString(arrayOfNumbers, decimals) {
 function getMinString(arrayOfNumbers, decimals) {
     let factor = Math.pow(10, decimals);
     return (Math.round((Math.min(...arrayOfNumbers) + Number.EPSILON) * factor) / factor).toString().replace('.', decimalChar);
+}
+
+function getTemperatureString(temperatureInCelsius) {
+    if (temperatureUnitConfig === 'FAHRENHEIT') {
+        return getAsRoundedString(convertToFahrenheit(temperatureInCelsius), 1) + '°F';
+    } else {
+        return getAsRoundedString(temperatureInCelsius, 1) + '°C';
+    }
+}
+
+function convertToFahrenheit(temperatureInCelsius) {
+    return temperatureInCelsius * 9 / 5 + 32
 }
