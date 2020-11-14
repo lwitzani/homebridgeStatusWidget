@@ -11,7 +11,8 @@ const hbServiceMachineBaseUrl = '>enter the ip with the port here<'; // location
 const userName = '>enter username here<'; // username of administrator of the hb-service
 const password = '>enter password here<'; // password of administrator of the hb-service
 
-const systemGuiName = 'Raspberry Pi' // name of the system your service is running on
+const systemGuiName = 'Raspberry Pi'; // name of the system your service is running on
+const fileManagerMode = 'ICLOUD'; // default is ICLOUD. If you don't use iCloud Drive use option LOCAL
 const temperatureUnitConfig = 'CELSIUS'; // options are CELSIUS or FAHRENHEIT
 const requestTimeoutInterval = 1; // in seconds; If requests take longer, the script is stopped. Increase it if it doesn't work or you
 const decimalChar = ','; // if you like a dot as decimal separator make the comma to a dot here
@@ -321,8 +322,8 @@ async function loadImage(imgUrl) {
 }
 
 async function getHbLogo() {
-    // this could be changed to FileManager.local() if you don't want to use iCloud
-    let fm = FileManager.iCloud();
+    // fileManagerMode must be LOCAL if you do not use iCloud drive
+    let fm = fileManagerMode === 'LOCAL' ? FileManager.local() : FileManager.iCloud();
     let path = getStoredLogoPath();
     if (fm.fileExists(path)) {
         return fm.readImage(path);
@@ -335,14 +336,15 @@ async function getHbLogo() {
 }
 
 function saveHbLogo(image) {
-    // this could be changed to FileManager.local() if you don't want to use iCloud
-    let fm = FileManager.iCloud();
+    // fileManagerMode must be LOCAL if you do not use iCloud drive
+    let fm = fileManagerMode === 'LOCAL' ? FileManager.local() : FileManager.iCloud();
     let path = getStoredLogoPath();
     fm.writeImage(path, image);
 }
 
 function getStoredLogoPath() {
-    let fm = FileManager.iCloud();
+    // fileManagerMode must be LOCAL if you do not use iCloud drive
+    let fm = fileManagerMode === 'LOCAL' ? FileManager.local() : FileManager.iCloud();
     let dirPath = fm.joinPath(fm.documentsDirectory(), "homebridgeStatus");
     if (!fm.fileExists(dirPath)) {
         fm.createDirectory(dirPath);

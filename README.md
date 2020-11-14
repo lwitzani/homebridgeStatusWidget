@@ -14,6 +14,7 @@
    - **username** of the administrator of the hb-service (not the actual linux user)
    - **password** of the administrator of the hb-service
 - the residual parameter can be tweaked a bit for your needs
+   - e.g. fileManagerMode, must be set to LOCAL if you do not use iCloud Drive. Default is ICLOUD
    - e.g. the systemGuiName, the name of your system running the Homebridge Config UI X (the hb-service)
    - e.g. the timeout could be increased if your system does not respond within 1 second
    - e.g. set the temperatureUnitConfig to 'FAHRENHEIT' to use °F instead of °C
