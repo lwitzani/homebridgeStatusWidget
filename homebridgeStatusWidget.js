@@ -2,8 +2,8 @@
 // All infos shown are based and provided by the Homebridge Config UI X found at https://github.com/oznu/homebridge-config-ui-x
 // Thanks to the github user oznu for providing such a nice programm!
 // This script does not work if you don't have the Homebridge service (Homebridge Config UI X) running
-// This script was developed with Homebridge Config UI X in version 4.32.0 (2020-11-06) and Scriptable app in version 1.6.1 on iOS 14.2
-// Maybe you need to update the UI-service OR the Scriptable app OR your iPhone if this script does not work for you
+// This script was developed with Homebridge Config UI X in version 4.32.0 (2020-11-06), Homebridge at version 1.1.6 and Scriptable app in version 1.6.1 on iOS 14.2
+// Maybe you need to update the UI-service OR Homebridge OR the Scriptable app OR your iPhone if this script does not work for you
 
 // CONFIGURATION //////////////////////
 // you must at least configure the next 3 lines to make this script work
@@ -13,6 +13,11 @@ const password = '>enter password here<'; // password of administrator of the hb
 
 const systemGuiName = 'Raspberry Pi'; // name of the system your service is running on
 const fileManagerMode = 'ICLOUD'; // default is ICLOUD. If you don't use iCloud Drive use option LOCAL
+const bgColorMode = 'PURPLE'; // default is PURPLE. Second option is BLACK
+const successIcon = '✅';
+const failIcon = '❌';
+const unknownIcon = '❓';
+const bulletPointIcon = '🔸';
 const temperatureUnitConfig = 'CELSIUS'; // options are CELSIUS or FAHRENHEIT
 const requestTimeoutInterval = 1; // in seconds; If requests take longer, the script is stopped. Increase it if it doesn't work or you
 const decimalChar = ','; // if you like a dot as decimal separator make the comma to a dot here
@@ -40,6 +45,14 @@ const chartAxisFont = Font.systemFont(7);
 const updatedAtFont = Font.systemFont(7);
 const fontColorWhite = new Color("#FFFFFF");
 const bgColorPurple = new Color("#421367");
+const bgColorBrighterPurple = new Color("#481367");
+const purpleBgGradient = new LinearGradient();
+purpleBgGradient.locations = [0, 1];
+purpleBgGradient.colors = [bgColorPurple, bgColorBrighterPurple];
+const blackBgGradient = new LinearGradient();
+blackBgGradient.locations = [0, 1];
+blackBgGradient.colors = [new Color("111111"), new Color("222222")];
+
 const chartColor = new Color("#FFFFFF");
 const UNAVAILABLE = 'UNAVAILABLE';
 
@@ -114,7 +127,13 @@ async function createWidget() {
     let token = await getAuthToken();
 
     let widget = new ListWidget();
-    widget.backgroundColor = bgColorPurple;
+    // Widget background color
+    if (bgColorMode === 'BLACK') {
+        widget.backgroundGradient = blackBgGradient;
+    } else {
+        widget.backgroundGradient = purpleBgGradient;
+    }
+
     if (token !== UNAVAILABLE) {
         widget.addSpacer(10);
     }
@@ -129,7 +148,7 @@ async function createWidget() {
     let headerText = titleStack.addText(' Homebridge ');
     headerText.font = headerFont;
     headerText.size = new Size(60, normalLineHeight);
-    headerText.color = fontColorWhite;
+    headerText.textColor = fontColorWhite;
     // LOGO AND HEADER END //////////////////////
 
 
@@ -148,12 +167,12 @@ async function createWidget() {
     let usedRamText = await getUsedRamString(ramData);
     let uptimeText = await getUptimeString(token);
 
-    // STATUS PANEL IN THE HEADER //////////////////////
+    // STATUS PANEL IN THE HEADER ///////////////////
     let statusInfo = titleStack.addText(hbStatus + 'Running         ' + hbUpToDate + 'UTD\n' + pluginsUpToDate + 'Plugins UTD  ' + nodeJsUpToDate + 'Node.js UTD');
     statusInfo.font = monospacedHeaderFont;
     statusInfo.size = new Size(155, 30);
-    statusInfo.color = fontColorWhite;
-    // STATUS PANEL IN THE HEADER END //////////////////////
+    statusInfo.textColor = fontColorWhite;
+    // STATUS PANEL IN THE HEADER END ///////////////
 
 
     widget.addSpacer(10);
@@ -162,7 +181,7 @@ async function createWidget() {
     // CHART STACK START //////////////////////
     let cpuLoadAndRamText = widget.addText('CPU Load: ' + getAsRoundedString(cpuData.currentLoad, 1) + '%                           RAM Usage: ' + usedRamText + '%');
     cpuLoadAndRamText.font = infoFont;
-    cpuLoadAndRamText.color = fontColorWhite;
+    cpuLoadAndRamText.textColor = fontColorWhite;
 
     let chartStack = widget.addStack();
     chartStack.size = new Size(maxLineWidth, 30);
@@ -170,7 +189,7 @@ async function createWidget() {
     let minMaxCpuLoadText = chartStack.addText(getMaxString(cpuData.cpuLoadHistory, 2) + '%\n\n' + getMinString(cpuData.cpuLoadHistory, 2) + '%');
     minMaxCpuLoadText.size = new Size(20, 10);
     minMaxCpuLoadText.font = chartAxisFont;
-    minMaxCpuLoadText.color = fontColorWhite;
+    minMaxCpuLoadText.textColor = fontColorWhite;
 
     let cpuLoadChart = new LineChart(500, 100, cpuData.cpuLoadHistory).configure((ctx, path) => {
         ctx.opaque = false;
@@ -186,7 +205,7 @@ async function createWidget() {
     let minMaxRamUsageText = chartStack.addText(getMaxString(ramData.memoryUsageHistory, 2) + '%\n\n' + getMinString(ramData.memoryUsageHistory, 2) + '%');
     minMaxRamUsageText.size = new Size(20, 10);
     minMaxRamUsageText.font = chartAxisFont;
-    minMaxRamUsageText.color = fontColorWhite;
+    minMaxRamUsageText.textColor = fontColorWhite;
 
     let ramUsageChart = new LineChart(500, 100, ramData.memoryUsageHistory).configure((ctx, path) => {
         ctx.opaque = false;
@@ -209,15 +228,15 @@ async function createWidget() {
     let cpuTempText = row3Stack.addText('CPU Temp: ' + getTemperatureString(cpuData.cpuTemperature.main) + '               ');
     cpuTempText.font = infoFont;
     cpuTempText.size = new Size(150, 30);
-    cpuTempText.color = fontColorWhite;
+    cpuTempText.textColor = fontColorWhite;
 
     let uptimeTitleTextRef = row3Stack.addText('  Uptimes: ');
     uptimeTitleTextRef.font = infoFont;
-    uptimeTitleTextRef.color = fontColorWhite;
+    uptimeTitleTextRef.textColor = fontColorWhite;
 
     let uptimeTextRef = row3Stack.addText(uptimeText);
     uptimeTextRef.font = infoFont;
-    uptimeTextRef.color = fontColorWhite;
+    uptimeTextRef.textColor = fontColorWhite;
     // LOWER PART END //////////////////////
 
     widget.addSpacer(5);
@@ -227,7 +246,7 @@ async function createWidget() {
     updatedAt.font = updatedAtFont;
     updatedAt.textColor = fontColorWhite;
     updatedAt.centerAlignText();
-    // BOTTOM UPDATED TEXT END //////////////////////
+    // BOTTOM UPDATED TEXT END //////////////////
 
     return widget;
 }
@@ -268,27 +287,39 @@ async function fetchData(token, url) {
 
 async function getHomebridgeStatus(token) {
     const statusData = await fetchData(token, hbStatusUrl);
-    return statusData.status === 'up' ? '✅' : '❌';
+    if (statusData === undefined) {
+        return unknownIcon;
+    }
+    return statusData.status === 'up' ? successIcon : failIcon;
 }
 
 async function getHomebridgeUpToDate(token) {
     const hbVersionData = await fetchData(token, hbVersionUrl);
-    return hbVersionData.updateAvailable ? '❌' : '✅';
+    if (hbVersionData === undefined) {
+        return unknownIcon;
+    }
+    return hbVersionData.updateAvailable ? failIcon : successIcon;
 }
 
 async function getNodeJsUpToDate(token) {
     const nodeJsData = await fetchData(token, nodeJsUrl);
-    return nodeJsData.updateAvailable ? '❌' : '✅';
+    if (nodeJsData === undefined) {
+        return unknownIcon;
+    }
+    return nodeJsData.updateAvailable ? failIcon : successIcon;
 }
 
 async function getPluginsUpToDate(token) {
     const pluginsData = await fetchData(token, pluginsUrl);
+    if (pluginsData === undefined) {
+        return unknownIcon;
+    }
     for (plugin of pluginsData) {
         if (plugin.updateAvailable) {
-            return '❌';
+            return failIcon;
         }
     }
-    return '✅';
+    return successIcon;
 }
 
 async function getUsedRamString(ramData) {
@@ -299,7 +330,7 @@ async function getUptimeString(token) {
     const uptimeData = await fetchData(token, uptimeUrl);
     let serverTime = uptimeData.time.uptime;
     let processUptime = uptimeData.processUptime;
-    return '➡️ ' + systemGuiName + ': ' + formatMinutes(serverTime) + '\n➡️ UI-Service: ' + formatMinutes(processUptime);
+    return bulletPointIcon + systemGuiName + ': ' + formatMinutes(serverTime) + '\n' + bulletPointIcon + 'UI-Service: ' + formatMinutes(processUptime);
 }
 
 function formatMinutes(value) {
@@ -355,12 +386,12 @@ function getStoredLogoPath() {
 
 function addNotAvailableInfos(widget, titleStack) {
     let statusInfo = titleStack.addText('                                                 ');
-    statusInfo.color = fontColorWhite;
+    statusInfo.textColor = fontColorWhite;
     statusInfo.size = new Size(150, normalLineHeight);
-    let errorText = widget.addText('   ❌ UI-Service not reachable!\n          👉🏻 Server started?\n          👉🏻 UI-Service process started?\n          👉🏻 Server-URL ' + hbServiceMachineBaseUrl + ' correct?\n          👉🏻 Are you in the same network?');
+    let errorText = widget.addText('   ' + failIcon + ' UI-Service not reachable!\n          👉🏻 Server started?\n          👉🏻 UI-Service process started?\n          👉🏻 Server-URL ' + hbServiceMachineBaseUrl + ' correct?\n          👉🏻 Are you in the same network?');
     errorText.size = new Size(410, 130);
     errorText.font = infoFont;
-    errorText.color = fontColorWhite;
+    errorText.textColor = fontColorWhite;
 
 
     widget.addSpacer(15);
