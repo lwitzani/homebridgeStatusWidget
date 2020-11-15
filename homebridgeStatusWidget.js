@@ -14,9 +14,7 @@ const password = '>enter password here<'; // password of administrator of the hb
 const systemGuiName = 'Raspberry Pi'; // name of the system your service is running on
 const fileManagerMode = 'ICLOUD'; // default is ICLOUD. If you don't use iCloud Drive use option LOCAL
 const bgColorMode = 'PURPLE'; // default is PURPLE. Second option is BLACK
-const successIcon = '✅';
 const failIcon = '❌';
-const unknownIcon = '❓';
 const bulletPointIcon = '🔸';
 const temperatureUnitConfig = 'CELSIUS'; // options are CELSIUS or FAHRENHEIT
 const requestTimeoutInterval = 1; // in seconds; If requests take longer, the script is stopped. Increase it if it doesn't work or you
@@ -39,7 +37,6 @@ const logoUrl = 'https://github.com/homebridge/branding/blob/master/logos/homebr
 const timeFormatter = new DateFormatter();
 timeFormatter.dateFormat = 'dd.MM.yyyy HH:mm:ss';
 const headerFont = Font.boldMonospacedSystemFont(12);
-const monospacedHeaderFont = Font.lightMonospacedSystemFont(12);
 const infoFont = Font.systemFont(10);
 const chartAxisFont = Font.systemFont(7);
 const updatedAtFont = Font.systemFont(7);
@@ -168,75 +165,92 @@ async function createWidget() {
     let uptimeText = await getUptimeString(token);
 
     // STATUS PANEL IN THE HEADER ///////////////////
-    let statusInfo = titleStack.addText(hbStatus + 'Running         ' + hbUpToDate + 'UTD\n' + pluginsUpToDate + 'Plugins UTD  ' + nodeJsUpToDate + 'Node.js UTD');
-    statusInfo.font = monospacedHeaderFont;
-    statusInfo.size = new Size(155, 30);
-    statusInfo.textColor = fontColorWhite;
-    // STATUS PANEL IN THE HEADER END ///////////////
+    let statusInfo = titleStack.addStack();
+    statusInfo.layoutVertically();
 
+    let firstLine = statusInfo.addStack();
+    firstLine.addSpacer(15);
+    addStatusInfo(firstLine, hbStatus, 'Running');
+    firstLine.addSpacer(30);
+    addStatusInfo(firstLine, hbUpToDate, 'UTD');
+    statusInfo.addSpacer(5); // space between the lines
+
+    let secondLine = statusInfo.addStack();
+    secondLine.addSpacer(15);
+    addStatusInfo(secondLine, pluginsUpToDate, 'Plugins UTD');
+    secondLine.addSpacer();
+
+    addStatusInfo(secondLine, nodeJsUpToDate, 'Node.js UTD');
+    // STATUS PANEL IN THE HEADER END ////////////////
 
     widget.addSpacer(10);
-
 
     // CHART STACK START //////////////////////
-    let cpuLoadAndRamText = widget.addText('CPU Load: ' + getAsRoundedString(cpuData.currentLoad, 1) + '%                           RAM Usage: ' + usedRamText + '%');
-    cpuLoadAndRamText.font = infoFont;
-    cpuLoadAndRamText.textColor = fontColorWhite;
+    if (cpuData && ramData) {
+        let textStack = widget.addStack();
+        textStack.addSpacer(2);
+        let cpuLoadAndRamText = textStack.addText('   CPU Load: ' + getAsRoundedString(cpuData.currentLoad, 1) + '%                      RAM Usage: ' + usedRamText + '%');
+        cpuLoadAndRamText.font = infoFont;
+        cpuLoadAndRamText.textColor = fontColorWhite;
 
-    let chartStack = widget.addStack();
-    chartStack.size = new Size(maxLineWidth, 30);
+        let chartStack = widget.addStack();
+        chartStack.size = new Size(maxLineWidth, 30);
 
-    let minMaxCpuLoadText = chartStack.addText(getMaxString(cpuData.cpuLoadHistory, 2) + '%\n\n' + getMinString(cpuData.cpuLoadHistory, 2) + '%');
-    minMaxCpuLoadText.size = new Size(20, 10);
-    minMaxCpuLoadText.font = chartAxisFont;
-    minMaxCpuLoadText.textColor = fontColorWhite;
+        let minMaxCpuLoadText = chartStack.addText(getMaxString(cpuData.cpuLoadHistory, 2) + '%\n\n' + getMinString(cpuData.cpuLoadHistory, 2) + '%');
+        minMaxCpuLoadText.size = new Size(20, 10);
+        minMaxCpuLoadText.font = chartAxisFont;
+        minMaxCpuLoadText.textColor = fontColorWhite;
+        chartStack.addSpacer(2);
+        let cpuLoadChart = new LineChart(500, 100, cpuData.cpuLoadHistory).configure((ctx, path) => {
+            ctx.opaque = false;
+            ctx.setFillColor(chartColor);
+            ctx.addPath(path);
+            ctx.fillPath(path);
+        }).getImage();
+        let cpuLoadChartImage = chartStack.addImage(cpuLoadChart);
+        cpuLoadChartImage.imageSize = new Size(100, 25);
 
-    let cpuLoadChart = new LineChart(500, 100, cpuData.cpuLoadHistory).configure((ctx, path) => {
-        ctx.opaque = false;
-        ctx.setFillColor(chartColor);
-        ctx.addPath(path);
-        ctx.fillPath(path);
-    }).getImage();
-    let cpuLoadChartImage = chartStack.addImage(cpuLoadChart);
-    cpuLoadChartImage.imageSize = new Size(125, 25);
+        chartStack.addSpacer(15);
 
-    chartStack.addSpacer(5);
+        let minMaxRamUsageText = chartStack.addText(getMaxString(ramData.memoryUsageHistory, 2) + '%\n\n' + getMinString(ramData.memoryUsageHistory, 2) + '%');
+        minMaxRamUsageText.size = new Size(20, 10);
+        minMaxRamUsageText.font = chartAxisFont;
+        minMaxRamUsageText.textColor = fontColorWhite;
 
-    let minMaxRamUsageText = chartStack.addText(getMaxString(ramData.memoryUsageHistory, 2) + '%\n\n' + getMinString(ramData.memoryUsageHistory, 2) + '%');
-    minMaxRamUsageText.size = new Size(20, 10);
-    minMaxRamUsageText.font = chartAxisFont;
-    minMaxRamUsageText.textColor = fontColorWhite;
-
-    let ramUsageChart = new LineChart(500, 100, ramData.memoryUsageHistory).configure((ctx, path) => {
-        ctx.opaque = false;
-        ctx.setFillColor(chartColor);
-        ctx.addPath(path);
-        ctx.fillPath(path);
-    }).getImage();
-    let ramUsageChartImage = chartStack.addImage(ramUsageChart);
-    ramUsageChartImage.imageSize = new Size(125, 25);
+        chartStack.addSpacer(2);
+        let ramUsageChart = new LineChart(500, 100, ramData.memoryUsageHistory).configure((ctx, path) => {
+            ctx.opaque = false;
+            ctx.setFillColor(chartColor);
+            ctx.addPath(path);
+            ctx.fillPath(path);
+        }).getImage();
+        let ramUsageChartImage = chartStack.addImage(ramUsageChart);
+        ramUsageChartImage.imageSize = new Size(100, 25);
+        chartStack.addSpacer(5);
+    }
     // CHART STACK END //////////////////////
 
-
     widget.addSpacer(10);
-
 
     // LOWER PART //////////////////////
     let row3Stack = widget.addStack();
     row3Stack.size = new Size(maxLineWidth, 30);
+    row3Stack.addSpacer(3);
 
-    let cpuTempText = row3Stack.addText('CPU Temp: ' + getTemperatureString(cpuData.cpuTemperature.main) + '               ');
+    let cpuTempText = row3Stack.addText('CPU Temp: ' + getTemperatureString(cpuData?.cpuTemperature.main) + '            ');
     cpuTempText.font = infoFont;
     cpuTempText.size = new Size(150, 30);
     cpuTempText.textColor = fontColorWhite;
 
-    let uptimeTitleTextRef = row3Stack.addText('  Uptimes: ');
+    let uptimeTitleTextRef = row3Stack.addText('     Uptimes: ');
     uptimeTitleTextRef.font = infoFont;
     uptimeTitleTextRef.textColor = fontColorWhite;
 
-    let uptimeTextRef = row3Stack.addText(uptimeText);
-    uptimeTextRef.font = infoFont;
-    uptimeTextRef.textColor = fontColorWhite;
+    if (uptimeText) {
+        let uptimeTextRef = row3Stack.addText(uptimeText);
+        uptimeTextRef.font = infoFont;
+        uptimeTextRef.textColor = fontColorWhite;
+    }
     // LOWER PART END //////////////////////
 
     widget.addSpacer(5);
@@ -282,52 +296,60 @@ async function fetchData(token, url) {
         "Authorization": "Bearer " + token
     };
     req.headers = headers;
-    return req.loadJSON();
+    let result;
+    try {
+        result = req.loadJSON();
+    } catch (e) {
+        return undefined;
+    }
+    return result;
 }
 
 async function getHomebridgeStatus(token) {
     const statusData = await fetchData(token, hbStatusUrl);
     if (statusData === undefined) {
-        return unknownIcon;
+        return undefined;
     }
-    return statusData.status === 'up' ? successIcon : failIcon;
+    return statusData.status === 'up';
 }
 
 async function getHomebridgeUpToDate(token) {
     const hbVersionData = await fetchData(token, hbVersionUrl);
     if (hbVersionData === undefined) {
-        return unknownIcon;
+        return undefined;
     }
-    return hbVersionData.updateAvailable ? failIcon : successIcon;
+    return !hbVersionData.updateAvailable;
 }
 
 async function getNodeJsUpToDate(token) {
     const nodeJsData = await fetchData(token, nodeJsUrl);
     if (nodeJsData === undefined) {
-        return unknownIcon;
+        return undefined;
     }
-    return nodeJsData.updateAvailable ? failIcon : successIcon;
+    return !nodeJsData.updateAvailable;
 }
 
 async function getPluginsUpToDate(token) {
     const pluginsData = await fetchData(token, pluginsUrl);
     if (pluginsData === undefined) {
-        return unknownIcon;
+        return undefined;
     }
     for (plugin of pluginsData) {
         if (plugin.updateAvailable) {
-            return failIcon;
+            return false;
         }
     }
-    return successIcon;
+    return true;
 }
 
 async function getUsedRamString(ramData) {
+    if (ramData === undefined) return 'unknown';
     return getAsRoundedString(100 - 100 * ramData.mem.available / ramData.mem.total, 2);
 }
 
 async function getUptimeString(token) {
     const uptimeData = await fetchData(token, uptimeUrl);
+    if (uptimeData === undefined) return;
     let serverTime = uptimeData.time.uptime;
     let processUptime = uptimeData.processUptime;
     return bulletPointIcon + systemGuiName + ': ' + formatMinutes(serverTime) + '\n' + bulletPointIcon + 'UI-Service: ' + formatMinutes(processUptime);
@@ -335,9 +357,9 @@ async function getUptimeString(token) {
 
 function formatMinutes(value) {
     if (value > 60 * 60 * 24) {
-        return getAsRoundedString(value / 60 / 60 / 24, 2) + 'd';
+        return getAsRoundedString(value / 60 / 60 / 24, 1) + 'd';
     } else if (value > 60 * 60) {
-        return getAsRoundedString(value / 60 / 60, 2) + 'h';
+        return getAsRoundedString(value / 60 / 60, 1) + 'h';
     } else if (value > 60) {
         return getAsRoundedString(value / 60, 2) + 'm';
     } else {
@@ -419,6 +441,8 @@ function getMinString(arrayOfNumbers, decimals) {
 }
 
 function getTemperatureString(temperatureInCelsius) {
+    if (temperatureInCelsius === undefined) return 'unknown';
+
     if (temperatureUnitConfig === 'FAHRENHEIT') {
         return getAsRoundedString(convertToFahrenheit(temperatureInCelsius), 1) + '°F';
     } else {
@@ -428,4 +452,36 @@ function getTemperatureString(temperatureInCelsius) {
 
 function convertToFahrenheit(temperatureInCelsius) {
     return temperatureInCelsius * 9 / 5 + 32
+}
+
+function addStatusIcon(widget, statusBool) {
+    let name = '';
+    let color;
+    if (statusBool === undefined) {
+        name = 'questionmark.circle.fill';
+        color = Color.yellow();
+    } else if (statusBool) {
+        name = 'checkmark.circle.fill';
+        color = Color.green();
+    } else {
+        name = 'exclamationmark.triangle.fill';
+        color = Color.red();
+    }
+    let sf = SFSymbol.named(name);
+    sf.applyFont(Font.heavySystemFont(50));
+    let iconImage = sf.image;
+    let imageWidget = widget.addImage(iconImage);
+    imageWidget.resizable = true;
+    imageWidget.imageSize = new Size(13, 13);
+    imageWidget.tintColor = color;
+}
+
+function addStatusInfo(lineWidget, statusBool, shownText) {
+    let itemStack = lineWidget.addStack();
+    itemStack.centerAlignContent();
+    addStatusIcon(itemStack, statusBool);
+    itemStack.addSpacer(2);
+    let text = itemStack.addText(shownText);
+    text.font = Font.semiboldMonospacedSystemFont(10);
+    text.textColor = fontColorWhite;
 }

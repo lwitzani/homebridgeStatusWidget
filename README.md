@@ -24,12 +24,7 @@
 - at the top of the script there is a variable bgColorMode that you can set to 'BLACK' to use the black variant which looks as the following:
 ![](widget_black.jpg)
 ![](notAvailable_black.jpg)
-- you can also change the icons used by providing any other emoji:
-- default icons are: 
-   - successIcon = ✅
-   - failIcon = ❌
-   - unknownIcon = ❓
-   - bulletPointIcon = 🔸
+- you can also change the icons failIcon = ❌ and bulletPointIcon = 🔸 by providing any other emoji
 
 # Infos shown in the widget
 - if Homebridge is running
@@ -41,3 +36,12 @@
 - RAM usage
 - Uptime for the system the hb-service is running on
 - Uptime for the hb-service (Homebridge Config UI X)
+
+# Troubleshoot
+- consider increasing the requestTimeoutInterval variable
+- if some error occurs always check that you have the matching versions
+  - the Scriptable app 1.6.1
+  - Homebridge Config UI X 4.32.0 (2020-11-06)
+  - Homebridge 1.1.6
+  - iOS 14.2
+- if your Homebridge Config UI X is reachable and the authentication process succeeded but the further API requests take to long or fail you will get a screen similar to ![](unknown.jpg)
