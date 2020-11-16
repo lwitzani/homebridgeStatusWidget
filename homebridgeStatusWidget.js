@@ -1,15 +1,17 @@
+// Check the readme at https://github.com/lwitzani/homebridgeStatusWidget and also for updates!
+
+
 // Welcome! This script shows basic infos about your Homebridge installation
 // All infos shown are based and provided by the Homebridge Config UI X found at https://github.com/oznu/homebridge-config-ui-x
-// Thanks to the github user oznu for providing such a nice programm!
 // This script does not work if you don't have the Homebridge service (Homebridge Config UI X) running
 // This script was developed with Homebridge Config UI X in version 4.32.0 (2020-11-06), Homebridge at version 1.1.6 and Scriptable app in version 1.6.1 on iOS 14.2
 // Maybe you need to update the UI-service OR Homebridge OR the Scriptable app OR your iPhone if this script does not work for you
 
 // CONFIGURATION //////////////////////
-// you must at least configure the next 3 lines to make this script work
-const hbServiceMachineBaseUrl = '>enter the ip with the port here<'; // location of your system running the hb-service, e.g. http://192.168.178.33:8581
-const userName = '>enter username here<'; // username of administrator of the hb-service
-const password = '>enter password here<'; // password of administrator of the hb-service
+// you must at least configure the next 3 lines to make this script work or use credentials in parameter when setting up the widget (see the readme on github)
+let hbServiceMachineBaseUrl = '>enter the ip with the port here<'; // location of your system running the hb-service, e.g. http://192.168.178.33:8581
+let userName = '>enter username here<'; // username of administrator of the hb-service
+let password = '>enter password here<'; // password of administrator of the hb-service
 
 const notificationEnabled = true; // set to false to disable all notifications
 const notificationIntervalInDays = 1; // minimum amount of days between the notification about the same topic; 0 means notification everytime the script is run (SPAM). 1 means you get 1 message per status category per day (maximum of 4 messages per day since there are 4 categories). Can also be something like 0.5 which means in a day you can get up to 8 messages
@@ -19,20 +21,20 @@ const bgColorMode = 'PURPLE'; // default is PURPLE. Second option is BLACK
 const failIcon = '❌';
 const bulletPointIcon = '🔸';
 const temperatureUnitConfig = 'CELSIUS'; // options are CELSIUS or FAHRENHEIT
-const requestTimeoutInterval = 1; // in seconds; If requests take longer, the script is stopped. Increase it if it doesn't work or you
+const requestTimeoutInterval = 2; // in seconds; If requests take longer, the script is stopped. Increase it if it doesn't work or you
 const decimalChar = ','; // if you like a dot as decimal separator make the comma to a dot here
 const maxLineWidth = 310; // if layout doesn't look good for you,
 const normalLineHeight = 35; // try to tweak the (font-)sizes & remove/add spaces below
 // CONFIGURATION END //////////////////////
 
-const authUrl = hbServiceMachineBaseUrl + '/api/auth/login';
-const cpuUrl = hbServiceMachineBaseUrl + '/api/status/cpu';
-const hbStatusUrl = hbServiceMachineBaseUrl + '/api/status/homebridge';
-const ramUrl = hbServiceMachineBaseUrl + '/api/status/ram';
-const uptimeUrl = hbServiceMachineBaseUrl + '/api/status/uptime';
-const pluginsUrl = hbServiceMachineBaseUrl + '/api/plugins';
-const hbVersionUrl = hbServiceMachineBaseUrl + '/api/status/homebridge-version';
-const nodeJsUrl = hbServiceMachineBaseUrl + '/api/status/nodejs';
+const authUrl = () => hbServiceMachineBaseUrl + '/api/auth/login';
+const cpuUrl = () => hbServiceMachineBaseUrl + '/api/status/cpu';
+const hbStatusUrl = () => hbServiceMachineBaseUrl + '/api/status/homebridge';
+const ramUrl = () => hbServiceMachineBaseUrl + '/api/status/ram';
+const uptimeUrl = () => hbServiceMachineBaseUrl + '/api/status/uptime';
+const pluginsUrl = () => hbServiceMachineBaseUrl + '/api/plugins';
+const hbVersionUrl = () => hbServiceMachineBaseUrl + '/api/status/homebridge-version';
+const nodeJsUrl = () => hbServiceMachineBaseUrl + '/api/status/nodejs';
 // logo is downloaded only the first time! It is saved in iCloud and then loaded from there everytime afterwards
 const logoUrl = 'https://github.com/homebridge/branding/blob/master/logos/homebridge-silhouette-round-white.png?raw=true';
 
@@ -126,10 +128,21 @@ Script.complete();
 async function createWidget() {
     // fileManagerMode must be LOCAL if you do not use iCloud drive
     let fm = fileManagerMode === 'LOCAL' ? FileManager.local() : FileManager.iCloud();
-
+    if (args.widgetParameter) {
+// you can provide the credentials via input parameter when setting up the widget
+// credentials must be separated by two commas like <username>,,<password>,,<hbServiceMachineBaseUrl>
+// a valid real example: admin,,mypassword123,,http://192.168.178.33:8581
+// this is useful if you update this script via https://scriptdu.de
+        let successFullySet = useCredentialsFromWidgetParameter(args.widgetParameter);
+        if (!successFullySet) {
+            throw('Format of provided credentials parameter seems not valid\nValid example:\nadmin,,mypassword123,,http://192.168.178.33:8581');
+        }
+    }
     // authenticate against the hb-service
     let token = await getAuthToken();
-
+    if (token === undefined) {
+        throw('Credentials not valid');
+    }
     let widget = new ListWidget();
     // Widget background color
     if (bgColorMode === 'BLACK') {
@@ -166,8 +179,8 @@ async function createWidget() {
     let hbUpToDate = await getHomebridgeUpToDate(token);
     let pluginsUpToDate = await getPluginsUpToDate(token);
     let nodeJsUpToDate = await getNodeJsUpToDate(token);
-    let cpuData = await fetchData(token, cpuUrl);
-    let ramData = await fetchData(token, ramUrl);
+    let cpuData = await fetchData(token, cpuUrl());
+    let ramData = await fetchData(token, ramUrl());
     let usedRamText = await getUsedRamString(ramData);
     let uptimeText = await getUptimeString(token);
 
@@ -275,8 +288,22 @@ async function createWidget() {
     return widget;
 }
 
+function useCredentialsFromWidgetParameter(givenParameter) {
+    if (givenParameter.includes(',,')) {
+        let credentials = givenParameter.split(',,');
+        if (credentials.length === 3 && credentials[0].length > 0 && credentials[1].length > 0 &&
+            credentials[2].length > 0 && credentials[2].startsWith('http')) {
+            userName = credentials[0].trim();
+            password = credentials[1].trim();
+            hbServiceMachineBaseUrl = credentials[2].trim();
+            return true;
+        }
+    }
+    return false;
+}
+
 async function getAuthToken() {
-    let req = new Request(authUrl);
+    let req = new Request(authUrl());
     req.timeoutInterval = requestTimeoutInterval;
     let body = {
         'username': userName,
@@ -316,7 +343,7 @@ async function fetchData(token, url) {
 }
 
 async function getHomebridgeStatus(token) {
-    const statusData = await fetchData(token, hbStatusUrl);
+    const statusData = await fetchData(token, hbStatusUrl());
     if (statusData === undefined) {
         return undefined;
     }
@@ -324,7 +351,7 @@ async function getHomebridgeStatus(token) {
 }
 
 async function getHomebridgeUpToDate(token) {
-    const hbVersionData = await fetchData(token, hbVersionUrl);
+    const hbVersionData = await fetchData(token, hbVersionUrl());
     if (hbVersionData === undefined) {
         return undefined;
     }
@@ -332,7 +359,7 @@ async function getHomebridgeUpToDate(token) {
 }
 
 async function getNodeJsUpToDate(token) {
-    const nodeJsData = await fetchData(token, nodeJsUrl);
+    const nodeJsData = await fetchData(token, nodeJsUrl());
     if (nodeJsData === undefined) {
         return undefined;
     }
@@ -340,7 +367,7 @@ async function getNodeJsUpToDate(token) {
 }
 
 async function getPluginsUpToDate(token) {
-    const pluginsData = await fetchData(token, pluginsUrl);
+    const pluginsData = await fetchData(token, pluginsUrl());
     if (pluginsData === undefined) {
         return undefined;
     }
@@ -358,7 +385,7 @@ async function getUsedRamString(ramData) {
 }
 
 async function getUptimeString(token) {
-    const uptimeData = await fetchData(token, uptimeUrl);
+    const uptimeData = await fetchData(token, uptimeUrl());
     if (uptimeData === undefined) return;
     let serverTime = uptimeData.time.uptime;
     let processUptime = uptimeData.processUptime;

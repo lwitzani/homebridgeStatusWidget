@@ -1,5 +1,10 @@
 I try to list the changes i make in this changelog:
 
+#16.11.2020 22:24
+- added support for entering credentials via widget parameter
+- parameter must have the format like admin,,mypassword123,,http://192.168.178.33:8581
+- added some concrete error information that should help setting up the widget
+
 #16.11.2020 20:39
 - added support for notifications when some status changed
 - supported: Homebridge stopped, Homebridge Update available, Plugin Update available, Node.js Update available

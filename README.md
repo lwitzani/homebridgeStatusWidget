@@ -9,16 +9,21 @@
 - also thanks to github user kevinkub for providing a line chart example at https://gist.github.com/kevinkub/b74f9c16f050576ae760a7730c19b8e2
 
 # How to use
-- you actually only need to configure 
+- updatable way supporting the install script from https://scriptdu.de (very recommended):
+   - set the widget up with parameter in the format \<username>,,\<password>,,\<hbServiceMachineBaseUrl>
+   - a valid real example: "admin,,mypassword123,,http://192.168.178.33:8581"
+   - screenshot of an example when setting it up: ![](images/example_parameter_setup.jpeg)
+   
+- hard coded way: you need to configure 
    - the **URL** of the system running the Homebridge Config UI X (the hb-service), including the port e.g. http://192.168.178.33:8581
    - **username** of the administrator of the homebridge-config-ui-x instance (not the actual linux user)
    - **password** of the administrator of the homebridge-config-ui-x instance
 - the residual parameter can be tweaked a bit for your needs
    - e.g. fileManagerMode, must be set to LOCAL if you do not use iCloud Drive. Default is ICLOUD
    - e.g. the systemGuiName, the name of your system running the Homebridge Config UI X (the hb-service)
-   - e.g. the timeout could be increased if your system does not respond within 1 second
+   - e.g. the timeout could be increased if your system does not respond within 2 second
    - e.g. set the temperatureUnitConfig to 'FAHRENHEIT' to use °F instead of °C
-- if your homebridge-config-ui-x instance is not reached within the specified timeout (currently 1sec) the following screen is shown: ![](images/notAvailable_purple.jpg)
+- if your homebridge-config-ui-x instance is not reached within the specified timeout (currently 2sec) the following screen is shown: ![](images/notAvailable_purple.jpg)
 
 # Notifications
 - the widget now can notify you when a status has changed
