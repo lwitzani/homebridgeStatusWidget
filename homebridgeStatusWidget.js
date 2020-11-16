@@ -11,6 +11,8 @@ const hbServiceMachineBaseUrl = '>enter the ip with the port here<'; // location
 const userName = '>enter username here<'; // username of administrator of the hb-service
 const password = '>enter password here<'; // password of administrator of the hb-service
 
+const notificationEnabled = true; // set to false to disable all notifications
+const notificationIntervalInDays = 1; // minimum amount of days between the notification about the same topic; 0 means notification everytime the script is run (SPAM). 1 means you get 1 message per status category per day (maximum of 4 messages per day since there are 4 categories). Can also be something like 0.5 which means in a day you can get up to 8 messages
 const systemGuiName = 'Raspberry Pi'; // name of the system your service is running on
 const fileManagerMode = 'ICLOUD'; // default is ICLOUD. If you don't use iCloud Drive use option LOCAL
 const bgColorMode = 'PURPLE'; // default is PURPLE. Second option is BLACK
@@ -40,18 +42,20 @@ const headerFont = Font.boldMonospacedSystemFont(12);
 const infoFont = Font.systemFont(10);
 const chartAxisFont = Font.systemFont(7);
 const updatedAtFont = Font.systemFont(7);
-const fontColorWhite = new Color("#FFFFFF");
-const bgColorPurple = new Color("#421367");
-const bgColorBrighterPurple = new Color("#481367");
+const fontColorWhite = new Color('FFFFFF');
+const bgColorPurple = new Color('#421367');
+const bgColorBrighterPurple = new Color('#481367');
 const purpleBgGradient = new LinearGradient();
 purpleBgGradient.locations = [0, 1];
 purpleBgGradient.colors = [bgColorPurple, bgColorBrighterPurple];
 const blackBgGradient = new LinearGradient();
 blackBgGradient.locations = [0, 1];
-blackBgGradient.colors = [new Color("111111"), new Color("222222")];
+blackBgGradient.colors = [new Color('111111'), new Color('222222')];
 
-const chartColor = new Color("#FFFFFF");
+const chartColor = new Color('#FFFFFF');
 const UNAVAILABLE = 'UNAVAILABLE';
+
+const NOTIFICATION_JSON_VERSION = 1; // never change this!
 
 class LineChart {
     // LineChart by https://kevinkub.de/
@@ -120,6 +124,9 @@ Script.complete();
 
 
 async function createWidget() {
+    // fileManagerMode must be LOCAL if you do not use iCloud drive
+    let fm = fileManagerMode === 'LOCAL' ? FileManager.local() : FileManager.iCloud();
+
     // authenticate against the hb-service
     let token = await getAuthToken();
 
@@ -138,7 +145,7 @@ async function createWidget() {
     // LOGO AND HEADER //////////////////////
     let titleStack = widget.addStack();
     titleStack.size = new Size(maxLineWidth, normalLineHeight);
-    const logo = await getHbLogo();
+    const logo = await getHbLogo(fm);
     const imgWidget = titleStack.addImage(logo);
     imgWidget.imageSize = new Size(40, 30);
 
@@ -178,7 +185,7 @@ async function createWidget() {
     let secondLine = statusInfo.addStack();
     secondLine.addSpacer(15);
     addStatusInfo(secondLine, pluginsUpToDate, 'Plugins UTD');
-    secondLine.addSpacer();
+    secondLine.addSpacer(9);
 
     addStatusInfo(secondLine, nodeJsUpToDate, 'Node.js UTD');
     // STATUS PANEL IN THE HEADER END ////////////////
@@ -262,6 +269,9 @@ async function createWidget() {
     updatedAt.centerAlignText();
     // BOTTOM UPDATED TEXT END //////////////////
 
+    if (notificationEnabled) {
+        handleNotifications(fm, hbStatus, hbUpToDate, pluginsUpToDate, nodeJsUpToDate);
+    }
     return widget;
 }
 
@@ -269,15 +279,15 @@ async function getAuthToken() {
     let req = new Request(authUrl);
     req.timeoutInterval = requestTimeoutInterval;
     let body = {
-        "username": userName,
-        "password": password,
-        "otp": "string"
+        'username': userName,
+        'password': password,
+        'otp': 'string'
     };
     let headers = {
-        "accept": "*\/*", "Content-Type": "application/json"
+        'accept': '*\/*', 'Content-Type': 'application/json'
     };
     req.body = JSON.stringify(body);
-    req.method = "POST";
+    req.method = 'POST';
     req.headers = headers;
     let authData;
     try {
@@ -292,8 +302,8 @@ async function fetchData(token, url) {
     let req = new Request(url);
     req.timeoutInterval = requestTimeoutInterval;
     let headers = {
-        "accept": "*\/*", "Content-Type": "application/json",
-        "Authorization": "Bearer " + token
+        'accept': '*\/*', 'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
     };
     req.headers = headers;
     let result;
@@ -374,37 +384,25 @@ async function loadImage(imgUrl) {
     return image;
 }
 
-async function getHbLogo() {
-    // fileManagerMode must be LOCAL if you do not use iCloud drive
-    let fm = fileManagerMode === 'LOCAL' ? FileManager.local() : FileManager.iCloud();
-    let path = getStoredLogoPath();
+async function getHbLogo(fm) {
+    let path = getStoredLogoPath(fm);
     if (fm.fileExists(path)) {
         return fm.readImage(path);
     } else {
         // logo did not exist -> download it and save it for next time the widget runs
         const logo = await loadImage(logoUrl);
-        saveHbLogo(logo);
+        fm.writeImage(path, logo);
         return logo;
     }
 }
 
-function saveHbLogo(image) {
-    // fileManagerMode must be LOCAL if you do not use iCloud drive
-    let fm = fileManagerMode === 'LOCAL' ? FileManager.local() : FileManager.iCloud();
-    let path = getStoredLogoPath();
-    fm.writeImage(path, image);
-}
-
-function getStoredLogoPath() {
-    // fileManagerMode must be LOCAL if you do not use iCloud drive
-    let fm = fileManagerMode === 'LOCAL' ? FileManager.local() : FileManager.iCloud();
-    let dirPath = fm.joinPath(fm.documentsDirectory(), "homebridgeStatus");
+function getStoredLogoPath(fm) {
+    let dirPath = fm.joinPath(fm.documentsDirectory(), 'homebridgeStatus');
     if (!fm.fileExists(dirPath)) {
         fm.createDirectory(dirPath);
     }
-    return fm.joinPath(dirPath, "hbLogo.png");
+    return fm.joinPath(dirPath, 'hbLogo.png');
 }
-
 
 function addNotAvailableInfos(widget, titleStack) {
     let statusInfo = titleStack.addText('                                                 ');
@@ -441,7 +439,7 @@ function getMinString(arrayOfNumbers, decimals) {
 }
 
 function getTemperatureString(temperatureInCelsius) {
-    if (temperatureInCelsius === undefined) return 'unknown';
+    if (temperatureInCelsius === undefined || temperatureInCelsius < 0) return 'unknown';
 
     if (temperatureUnitConfig === 'FAHRENHEIT') {
         return getAsRoundedString(convertToFahrenheit(temperatureInCelsius), 1) + '°F';
@@ -451,7 +449,7 @@ function getTemperatureString(temperatureInCelsius) {
 }
 
 function convertToFahrenheit(temperatureInCelsius) {
-    return temperatureInCelsius * 9 / 5 + 32
+    return temperatureInCelsius * 9 / 5 + 32;
 }
 
 function addStatusIcon(widget, statusBool) {
@@ -484,4 +482,116 @@ function addStatusInfo(lineWidget, statusBool, shownText) {
     let text = itemStack.addText(shownText);
     text.font = Font.semiboldMonospacedSystemFont(10);
     text.textColor = fontColorWhite;
+}
+
+function handleNotifications(fm, hbRunning, hbUtd, pluginsUtd, nodeUtd) {
+    let path = getStoredNotificationStatePath(fm);
+    let state = getNotificationState(fm, path);
+    let now = new Date();
+    let shouldUpdateState = false;
+    if (shouldNotify(hbRunning, state.hbRunning.status, state.hbRunning.lastNotified)) {
+        state.hbRunning.status = hbRunning;
+        state.hbRunning.lastNotified = now;
+        shouldUpdateState = true;
+        scheduleNotification('Your Homebridge instance stopped 😱');
+    }
+    if (shouldNotify(hbUtd, state.hbUtd.status, state.hbUtd.lastNotified)) {
+        state.hbUtd.status = hbUtd;
+        state.hbUtd.lastNotified = now;
+        shouldUpdateState = true;
+        scheduleNotification('Update available for Homebridge 😎');
+    }
+    if (shouldNotify(pluginsUtd, state.pluginsUtd.status, state.pluginsUtd.lastNotified)) {
+        state.pluginsUtd.status = pluginsUtd;
+        state.pluginsUtd.lastNotified = now;
+        shouldUpdateState = true;
+        scheduleNotification('Update available for one of your Plugins 😎');
+    }
+    if (shouldNotify(nodeUtd, state.nodeUtd.status, state.nodeUtd.lastNotified)) {
+        state.nodeUtd.status = nodeUtd;
+        state.nodeUtd.lastNotified = now;
+        shouldUpdateState = true;
+        scheduleNotification('Update available for Node.js 😎');
+    }
+
+    if (shouldUpdateState) {
+        saveNotificationState(fm, state, path);
+    }
+}
+
+function shouldNotify(currentBool, boolFromLastTime, lastNotifiedDate) {
+    return (!currentBool && (boolFromLastTime || isTimeToNotifyAgain(lastNotifiedDate)));
+}
+
+function isTimeToNotifyAgain(dateToCheck) {
+    if (dateToCheck === undefined) return true;
+
+    let dateInThePast = new Date(dateToCheck);
+    let now = new Date();
+    let timeBetweenDates = parseInt((now.getTime() - dateInThePast.getTime()) / 1000); // seconds
+    return timeBetweenDates > notificationIntervalInDays * 24 * 60 * 60;
+}
+
+function scheduleNotification(text) {
+    let not = new Notification();
+    not.title = 'Homebridge Status changed:'
+    not.body = text;
+    not.addAction('Show me!', hbServiceMachineBaseUrl, false)
+    not.sound = 'event';
+    not.schedule();
+}
+
+function getNotificationState(fm, path) {
+    if (fm.fileExists(path)) {
+        let raw, savedState;
+        try {
+            raw = fm.readString(path);
+            savedState = JSON.parse(raw);
+        } catch (e) {
+            // file corrupted -> remove it
+            fm.remove(path);
+        }
+
+        if (savedState && savedState.jsonVersion === undefined || savedState.jsonVersion < NOTIFICATION_JSON_VERSION) {
+            // the version of the json file is outdated -> remove it and recreate it
+            fm.remove(path);
+        } else {
+            return savedState;
+        }
+    }
+    // create a new state json
+    let state = {
+        'jsonVersion': NOTIFICATION_JSON_VERSION,
+        'hbRunning': {
+            'status': true,
+            'lastNotified': undefined
+        },
+        'hbUtd': {
+            'status': true,
+            'lastNotified': undefined
+        },
+        'pluginsUtd': {
+            'status': true,
+            'lastNotified': undefined
+        },
+        'nodeUtd': {
+            'status': true,
+            'lastNotified': undefined
+        }
+    };
+    saveNotificationState(fm, state, path);
+    return state;
+}
+
+function saveNotificationState(fm, state, path) {
+    let raw = JSON.stringify(state);
+    fm.writeString(path, raw);
+}
+
+function getStoredNotificationStatePath(fm) {
+    let dirPath = fm.joinPath(fm.documentsDirectory(), 'homebridgeStatus');
+    if (!fm.fileExists(dirPath)) {
+        fm.createDirectory(dirPath);
+    }
+    return fm.joinPath(dirPath, 'notificationState.json');
 }

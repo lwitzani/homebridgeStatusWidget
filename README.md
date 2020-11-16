@@ -1,4 +1,4 @@
-![](widget_purple.jpg)
+![](images/widget_purple.jpg)
 
 # Homebridge Status Widget
 - Script for the iOS App Scriptable that shows a small summary of your Homebridge instance
@@ -18,12 +18,31 @@
    - e.g. the systemGuiName, the name of your system running the Homebridge Config UI X (the hb-service)
    - e.g. the timeout could be increased if your system does not respond within 1 second
    - e.g. set the temperatureUnitConfig to 'FAHRENHEIT' to use °F instead of °C
-- if your homebridge-config-ui-x instance is not reached within the specified timeout (currently 1sec) the following screen is shown: ![](notAvailable_purple.jpg)
+- if your homebridge-config-ui-x instance is not reached within the specified timeout (currently 1sec) the following screen is shown: ![](images/notAvailable_purple.jpg)
+
+# Notifications
+- the widget now can notify you when a status has changed
+- you will get a notification if:
+  - your Homebridge stopped running
+  - there is an update available for Homebridge
+  - there is an update available for one of your plugins
+  - there is an update available for node.js
+- disable notifications by setting notificationEnabled to false
+- edit the variable notificationIntervalInDays to lengthen or shorten the time between getting the same notification (e.g. plugin update available) again
+  - 0 means you get a notification every time the script runs (not recommended)
+  - 1 means you get each possible notification to a maximum of 1 time per day
+  - 0.5 means you get each possible notification to a maximum of 2 times per day
+- Open a notification to reveal the "Show me!" button which takes you directly to Homebridge Config UI X
+- Here are some screenshots: 
+![](images/notification_plugin_update.jpeg)
+![](images/notification_homebridge_update.jpeg)
+![](images/notification_homebridge_stopped.jpg)
+![](images/notification_homebridge_stopped_extended.jpg)
 
 # Styling
 - at the top of the script there is a variable bgColorMode that you can set to 'BLACK' to use the black variant which looks as the following:
-![](widget_black.jpg)
-![](notAvailable_black.jpg)
+![](images/widget_black.jpg)
+![](images/notAvailable_black.jpg)
 - you can also change the icons failIcon = ❌ and bulletPointIcon = 🔸 by providing any other emoji
 
 # Infos shown in the widget
@@ -38,10 +57,11 @@
 - Uptime for the hb-service (Homebridge Config UI X)
 
 # Troubleshoot
+- triple check the credentials (2FA currently not supported)
 - consider increasing the requestTimeoutInterval variable
 - if some error occurs always check that you have the matching versions
   - the Scriptable app 1.6.1
   - Homebridge Config UI X 4.32.0 (2020-11-06)
   - Homebridge 1.1.6
   - iOS 14.2
-- if your Homebridge Config UI X is reachable and the authentication process succeeded but the further API requests take to long or fail you will get a screen similar to ![](unknown.jpg)
+- if your Homebridge Config UI X is reachable and the authentication process succeeded but the further API requests take to long or fail you will get a screen similar to ![](images/unknown.jpg)
