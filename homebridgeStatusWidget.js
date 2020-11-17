@@ -15,6 +15,7 @@ let password = '>enter password here<'; // password of administrator of the hb-s
 
 const notificationEnabled = true; // set to false to disable all notifications
 const notificationIntervalInDays = 1; // minimum amount of days between the notification about the same topic; 0 means notification everytime the script is run (SPAM). 1 means you get 1 message per status category per day (maximum of 4 messages per day since there are 4 categories). Can also be something like 0.5 which means in a day you can get up to 8 messages
+const disableStateBackToNormalNotifications = true; // set to false, if you want to be notified e.g. when Homebridge is running again after it stopped
 const systemGuiName = 'Raspberry Pi'; // name of the system your service is running on
 const fileManagerMode = 'ICLOUD'; // default is ICLOUD. If you don't use iCloud Drive use option LOCAL
 const bgColorMode = 'PURPLE'; // default is PURPLE. Second option is BLACK
@@ -521,24 +522,55 @@ function handleNotifications(fm, hbRunning, hbUtd, pluginsUtd, nodeUtd) {
         state.hbRunning.lastNotified = now;
         shouldUpdateState = true;
         scheduleNotification('Your Homebridge instance stopped 😱');
+    } else if (hbRunning && !state.hbRunning.status) {
+        state.hbRunning.status = hbRunning;
+        state.hbRunning.lastNotified = undefined;
+        shouldUpdateState = true;
+        if (!disableStateBackToNormalNotifications) {
+            scheduleNotification('Your Homebridge instance is back online 😁');
+        }
     }
+
     if (shouldNotify(hbUtd, state.hbUtd.status, state.hbUtd.lastNotified)) {
         state.hbUtd.status = hbUtd;
         state.hbUtd.lastNotified = now;
         shouldUpdateState = true;
         scheduleNotification('Update available for Homebridge 😎');
+    } else if (hbUtd && !state.hbUtd.status) {
+        state.hbUtd.status = hbUtd;
+        state.hbUtd.lastNotified = undefined;
+        shouldUpdateState = true;
+        if (!disableStateBackToNormalNotifications) {
+            scheduleNotification('Homebridge is now up to date ✌️');
+        }
     }
+
     if (shouldNotify(pluginsUtd, state.pluginsUtd.status, state.pluginsUtd.lastNotified)) {
         state.pluginsUtd.status = pluginsUtd;
         state.pluginsUtd.lastNotified = now;
         shouldUpdateState = true;
         scheduleNotification('Update available for one of your Plugins 😎');
+    } else if (pluginsUtd && !state.pluginsUtd.status) {
+        state.pluginsUtd.status = pluginsUtd;
+        state.pluginsUtd.lastNotified = undefined;
+        shouldUpdateState = true;
+        if (!disableStateBackToNormalNotifications) {
+            scheduleNotification('Plugins are now up to date ✌️');
+        }
     }
+
     if (shouldNotify(nodeUtd, state.nodeUtd.status, state.nodeUtd.lastNotified)) {
         state.nodeUtd.status = nodeUtd;
         state.nodeUtd.lastNotified = now;
         shouldUpdateState = true;
         scheduleNotification('Update available for Node.js 😎');
+    } else if (nodeUtd && !state.nodeUtd.status) {
+        state.nodeUtd.status = nodeUtd;
+        state.nodeUtd.lastNotified = undefined;
+        shouldUpdateState = true;
+        if (!disableStateBackToNormalNotifications) {
+            scheduleNotification('Node.js is now up to date ✌️');
+        }
     }
 
     if (shouldUpdateState) {
