@@ -18,11 +18,13 @@ const notificationIntervalInDays = 1; // minimum amount of days between the noti
 const disableStateBackToNormalNotifications = true; // set to false, if you want to be notified e.g. when Homebridge is running again after it stopped
 const systemGuiName = 'Raspberry Pi'; // name of the system your service is running on
 const fileManagerMode = 'ICLOUD'; // default is ICLOUD. If you don't use iCloud Drive use option LOCAL
+const temperatureUnitConfig = 'CELSIUS'; // options are CELSIUS or FAHRENHEIT
+const requestTimeoutInterval = 2; // in seconds; If requests take longer, the script is stopped. Increase it if it doesn't work or you
+const pluginsOrSwUpdatesToIgnore = []; // a string array; enter the exact npm-plugin-names e.g. 'homebridge-fritz' or additionally 'HOMEBRIDGE_UTD' or 'NODEJS_UTD' if you do not want to have them checked for their latest versions
+
 const bgColorMode = 'PURPLE'; // default is PURPLE. Second option is BLACK
 const failIcon = '❌';
 const bulletPointIcon = '🔸';
-const temperatureUnitConfig = 'CELSIUS'; // options are CELSIUS or FAHRENHEIT
-const requestTimeoutInterval = 2; // in seconds; If requests take longer, the script is stopped. Increase it if it doesn't work or you
 const decimalChar = ','; // if you like a dot as decimal separator make the comma to a dot here
 const maxLineWidth = 310; // if layout doesn't look good for you,
 const normalLineHeight = 35; // try to tweak the (font-)sizes & remove/add spaces below
@@ -356,6 +358,10 @@ async function getHomebridgeStatus(token) {
 }
 
 async function getHomebridgeUpToDate(token) {
+    if (pluginsOrSwUpdatesToIgnore.includes('HOMEBRIDGE_UTD')) {
+        log('You configured Homebridge to not be checked for updates. Widget will show that it\'s UTD!');
+        return true;
+    }
     const hbVersionData = await fetchData(token, hbVersionUrl());
     if (hbVersionData === undefined) {
         return undefined;
@@ -364,6 +370,10 @@ async function getHomebridgeUpToDate(token) {
 }
 
 async function getNodeJsUpToDate(token) {
+    if (pluginsOrSwUpdatesToIgnore.includes('NODEJS_UTD')) {
+        log('You configured Node.js to not be checked for updates. Widget will show that it\'s UTD!');
+        return true;
+    }
     const nodeJsData = await fetchData(token, nodeJsUrl());
     if (nodeJsData === undefined) {
         return undefined;
@@ -377,6 +387,10 @@ async function getPluginsUpToDate(token) {
         return undefined;
     }
     for (plugin of pluginsData) {
+        if (pluginsOrSwUpdatesToIgnore.includes(plugin.name)) {
+            log('You configured ' + plugin.name + ' to not be checked for updates. Widget will show that it\'s UTD!');
+            continue;
+        }
         if (plugin.updateAvailable) {
             return false;
         }

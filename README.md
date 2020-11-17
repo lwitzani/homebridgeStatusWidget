@@ -33,6 +33,7 @@
   - there is an update available for one of your plugins
   - there is an update available for node.js
 - disable notifications by setting notificationEnabled to false
+- enable getting notification when any status was yellow and is now back to normal by setting the variable disableStateBackToNormalNotifications to false
 - edit the variable notificationIntervalInDays to lengthen or shorten the time between getting the same notification (e.g. plugin update available) again
   - 0 means you get a notification every time the script runs (not recommended)
   - 1 means you get each possible notification to a maximum of 1 time per day
@@ -43,6 +44,15 @@
 ![](images/notification_homebridge_update.jpeg)
 ![](images/notification_homebridge_stopped.jpg)
 ![](images/notification_homebridge_stopped_extended.jpg)
+
+# Ignoring specific plugins or software
+- by filling the empty array of the variable pluginsOrSwUpdatesToIgnore with strings, you can now configure to ignore plugins, Homebridge or Node.js during checking for updates
+- succesfully ignored software will not influence the shown status (e.g. ignoring homebridge UTD status will result in showing the green status always even if there is an update available)
+  - for ignoring plugins, enter their npm name (e.g. 'homebridge-fritz') as string in the given empty array 
+  - for ignoring Homebridge enter 'HOMEBRIDGE_UTD' and for Node enter 'NODEJS_UTD' in the empty array
+  - a valid example of the variable would be const pluginsOrSwUpdatesToIgnore = ['homebridge-fritz', 'HOMEBRIDGE_UTD', 'NODEJS_UTD'];
+  - if you specify something and run the script inside the Scriptable app, you will get a log output to let you know that you ignored something successfully
+
 
 # Styling
 - at the top of the script there is a variable bgColorMode that you can set to 'BLACK' to use the black variant which looks as the following:
@@ -62,6 +72,7 @@
 - Uptime for the hb-service (Homebridge Config UI X)
 
 # Troubleshoot
+- if the temperature is not shown for you, then the information is not available on your machine
 - triple check the credentials (2FA currently not supported)
 - consider increasing the requestTimeoutInterval variable
 - if some error occurs always check that you have the matching versions
