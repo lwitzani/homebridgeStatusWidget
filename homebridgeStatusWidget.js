@@ -256,14 +256,18 @@ async function createWidget() {
     // LOWER PART //////////////////////
     let row3Stack = widget.addStack();
     row3Stack.size = new Size(maxLineWidth, 30);
-    row3Stack.addSpacer(3);
 
-    let cpuTempText = row3Stack.addText('CPU Temp: ' + getTemperatureString(cpuData?.cpuTemperature.main) + '            ');
-    cpuTempText.font = infoFont;
-    cpuTempText.size = new Size(150, 30);
-    cpuTempText.textColor = fontColorWhite;
+    let temperatureString = getTemperatureString(cpuData?.cpuTemperature.main);
+    if (temperatureString !== 'unknown') {
+        row3Stack.addSpacer(5);
+        let cpuTempText = row3Stack.addText('CPU Temp: ' + temperatureString);
+        cpuTempText.font = infoFont;
+        cpuTempText.size = new Size(150, 30);
+        cpuTempText.textColor = fontColorWhite;
+        row3Stack.addSpacer(40);
+    }
 
-    let uptimeTitleTextRef = row3Stack.addText('     Uptimes: ');
+    let uptimeTitleTextRef = row3Stack.addText('   Uptimes: ');
     uptimeTitleTextRef.font = infoFont;
     uptimeTitleTextRef.textColor = fontColorWhite;
 
@@ -399,9 +403,9 @@ function formatMinutes(value) {
     } else if (value > 60 * 60) {
         return getAsRoundedString(value / 60 / 60, 1) + 'h';
     } else if (value > 60) {
-        return getAsRoundedString(value / 60, 2) + 'm';
+        return getAsRoundedString(value / 60, 1) + 'm';
     } else {
-        return getAsRoundedString(value, 2) + 's';
+        return getAsRoundedString(value, 1) + 's';
     }
 }
 
