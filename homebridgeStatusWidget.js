@@ -22,7 +22,7 @@ const temperatureUnitConfig = 'CELSIUS'; // options are CELSIUS or FAHRENHEIT
 const requestTimeoutInterval = 2; // in seconds; If requests take longer, the script is stopped. Increase it if it doesn't work or you
 const pluginsOrSwUpdatesToIgnore = []; // a string array; enter the exact npm-plugin-names e.g. 'homebridge-fritz' or additionally 'HOMEBRIDGE_UTD' or 'NODEJS_UTD' if you do not want to have them checked for their latest versions
 
-const bgColorMode = 'PURPLE'; // default is PURPLE. Second option is BLACK
+const bgColorMode = 'PURPLE'; // default is PURPLE. Other options: BLACK or BLUE_TO_RED
 const failIcon = '❌';
 const bulletPointIcon = '🔸';
 const decimalChar = ','; // if you like a dot as decimal separator make the comma to a dot here
@@ -56,6 +56,9 @@ purpleBgGradient.colors = [bgColorPurple, bgColorBrighterPurple];
 const blackBgGradient = new LinearGradient();
 blackBgGradient.locations = [0, 1];
 blackBgGradient.colors = [new Color('111111'), new Color('222222')];
+const blueToRedBgGradient = new LinearGradient();
+blueToRedBgGradient.locations = [0, 1];
+blueToRedBgGradient.colors = [new Color('3e00fa'), new Color('7a04d4')];
 
 const chartColor = new Color('#FFFFFF');
 const UNAVAILABLE = 'UNAVAILABLE';
@@ -150,6 +153,8 @@ async function createWidget() {
     // Widget background color
     if (bgColorMode === 'BLACK') {
         widget.backgroundGradient = blackBgGradient;
+    } if (bgColorMode === 'BLUE_TO_RED') {
+        widget.backgroundGradient = blueToRedBgGradient;
     } else {
         widget.backgroundGradient = purpleBgGradient;
     }

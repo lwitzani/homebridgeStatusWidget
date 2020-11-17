@@ -55,9 +55,10 @@
 
 
 # Styling
-- at the top of the script there is a variable bgColorMode that you can set to 'BLACK' to use the black variant which looks as the following:
+- at the top of the script there is a variable bgColorMode that you can set to 'BLACK' or 'BLUE_TO_RED' to use other variants which look as the following:
 ![](images/widget_black.jpg)
 ![](images/notAvailable_black.jpg)
+![](images/widget_blue_to_red.jpg)
 - you can also change the icons failIcon = ❌ and bulletPointIcon = 🔸 by providing any other emoji
 
 # Infos shown in the widget

@@ -1,5 +1,8 @@
 I try to list the changes i make in this changelog:
 
+#17.11.2020 20:31
+- just added a new background color BLUE_TO_RED
+
 #17.11.2020 20:14
 - added missing reset of notification state (not critical), so that notifications are fired again after everything was back to normal (e.g. HB down -> notification, HB up again -> reset, HB down -> again notification)
 - you can also get notified now when a state changed back to normal (but is disabled by default)
