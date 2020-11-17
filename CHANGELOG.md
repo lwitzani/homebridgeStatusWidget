@@ -1,5 +1,10 @@
 I try to list the changes i make in this changelog:
 
+#17.11.2020 22:08
+- complete overhaul of the section above the updated date and below the title for perfect alignment (now only using stacks and spacers)
+- only updated one picture (the main pic on top of readme)
+- no functionality changed
+
 #17.11.2020 20:31
 - just added a new background color BLUE_TO_RED
 

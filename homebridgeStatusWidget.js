@@ -153,7 +153,7 @@ async function createWidget() {
     // Widget background color
     if (bgColorMode === 'BLACK') {
         widget.backgroundGradient = blackBgGradient;
-    } if (bgColorMode === 'BLUE_TO_RED') {
+    } else if (bgColorMode === 'BLUE_TO_RED') {
         widget.backgroundGradient = blueToRedBgGradient;
     } else {
         widget.backgroundGradient = purpleBgGradient;
@@ -190,7 +190,7 @@ async function createWidget() {
     let cpuData = await fetchData(token, cpuUrl());
     let ramData = await fetchData(token, ramUrl());
     let usedRamText = await getUsedRamString(ramData);
-    let uptimeText = await getUptimeString(token);
+    let uptimesArray = await getUptimesArray(token);
 
     // STATUS PANEL IN THE HEADER ///////////////////
     let statusInfo = titleStack.addStack();
@@ -213,91 +213,124 @@ async function createWidget() {
 
     widget.addSpacer(10);
 
-    // CHART STACK START //////////////////////
     if (cpuData && ramData) {
-        let textStack = widget.addStack();
-        textStack.addSpacer(2);
-        let cpuLoadAndRamText = textStack.addText('   CPU Load: ' + getAsRoundedString(cpuData.currentLoad, 1) + '%                      RAM Usage: ' + usedRamText + '%');
-        cpuLoadAndRamText.font = infoFont;
-        cpuLoadAndRamText.textColor = fontColorWhite;
+        let mainColumns = widget.addStack();
+        mainColumns.size = new Size(maxLineWidth, 70);
+        mainColumns.addSpacer(1);
 
-        let chartStack = widget.addStack();
-        chartStack.size = new Size(maxLineWidth, 30);
+        // FIRST COLUMN //////////////////////
+        let firstColumn = mainColumns.addStack();
+        firstColumn.layoutVertically();
+        let cpuLoadTitle = firstColumn.addText('CPU Load: ' + getAsRoundedString(cpuData.currentLoad, 1) + '%');
+        cpuLoadTitle.font = infoFont;
+        cpuLoadTitle.textColor = fontColorWhite;
 
-        let minMaxCpuLoadText = chartStack.addText(getMaxString(cpuData.cpuLoadHistory, 2) + '%\n\n' + getMinString(cpuData.cpuLoadHistory, 2) + '%');
-        minMaxCpuLoadText.size = new Size(20, 10);
-        minMaxCpuLoadText.font = chartAxisFont;
-        minMaxCpuLoadText.textColor = fontColorWhite;
-        chartStack.addSpacer(2);
+        let cpuChartStack = firstColumn.addStack();
+        cpuChartStack.addSpacer(5);
+        let minMaxCpuLoadTextStack = cpuChartStack.addStack();
+        minMaxCpuLoadTextStack.layoutVertically();
+
+        let maxCpuText = minMaxCpuLoadTextStack.addText(getMaxString(cpuData.cpuLoadHistory, 2) + '%');
+        maxCpuText.font = chartAxisFont;
+        maxCpuText.textColor = fontColorWhite;
+        minMaxCpuLoadTextStack.addSpacer(6);
+        let minCpuText = minMaxCpuLoadTextStack.addText(getMinString(cpuData.cpuLoadHistory, 2) + '%');
+        minCpuText.font = chartAxisFont;
+        minCpuText.textColor = fontColorWhite;
+        minMaxCpuLoadTextStack.addSpacer(6);
+
+        cpuChartStack.addSpacer(2);
+
         let cpuLoadChart = new LineChart(500, 100, cpuData.cpuLoadHistory).configure((ctx, path) => {
             ctx.opaque = false;
             ctx.setFillColor(chartColor);
             ctx.addPath(path);
             ctx.fillPath(path);
         }).getImage();
-        let cpuLoadChartImage = chartStack.addImage(cpuLoadChart);
+        let cpuLoadChartImage = cpuChartStack.addImage(cpuLoadChart);
         cpuLoadChartImage.imageSize = new Size(100, 25);
 
-        chartStack.addSpacer(15);
+        firstColumn.addSpacer(2);
 
-        let minMaxRamUsageText = chartStack.addText(getMaxString(ramData.memoryUsageHistory, 2) + '%\n\n' + getMinString(ramData.memoryUsageHistory, 2) + '%');
-        minMaxRamUsageText.size = new Size(20, 10);
-        minMaxRamUsageText.font = chartAxisFont;
-        minMaxRamUsageText.textColor = fontColorWhite;
+        let temperatureString = getTemperatureString(cpuData?.cpuTemperature.main);
+        if (temperatureString !== 'unknown') {
+            let cpuTempText = firstColumn.addText('CPU Temp: ' + temperatureString);
+            cpuTempText.font = infoFont;
+            cpuTempText.size = new Size(150, 30);
+            cpuTempText.textColor = fontColorWhite;
+        }
+        // FIRST COLUMN END //////////////////////
 
-        chartStack.addSpacer(2);
+        mainColumns.addSpacer(15);
+
+        // SECOND COLUMN //////////////////////
+        let secondColumn = mainColumns.addStack();
+        secondColumn.layoutVertically();
+        let ramUsageTitle = secondColumn.addText('RAM Usage: ' + usedRamText + '%');
+        ramUsageTitle.font = infoFont;
+        ramUsageTitle.textColor = fontColorWhite;
+
+        let ramChartStack = secondColumn.addStack();
+        ramChartStack.addSpacer(5);
+        let minMaxRamUsageTextStack = ramChartStack.addStack();
+        minMaxRamUsageTextStack.layoutVertically();
+
+        let maxRamText = minMaxRamUsageTextStack.addText(getMaxString(ramData.memoryUsageHistory, 2) + '%');
+        maxRamText.font = chartAxisFont;
+        maxRamText.textColor = fontColorWhite;
+        minMaxRamUsageTextStack.addSpacer(6);
+        let minRamText = minMaxRamUsageTextStack.addText(getMinString(ramData.memoryUsageHistory, 2) + '%');
+        minRamText.font = chartAxisFont;
+        minRamText.textColor = fontColorWhite;
+        minMaxRamUsageTextStack.addSpacer(6);
+
+        ramChartStack.addSpacer(2);
+
         let ramUsageChart = new LineChart(500, 100, ramData.memoryUsageHistory).configure((ctx, path) => {
             ctx.opaque = false;
             ctx.setFillColor(chartColor);
             ctx.addPath(path);
             ctx.fillPath(path);
         }).getImage();
-        let ramUsageChartImage = chartStack.addImage(ramUsageChart);
+        let ramUsageChartImage = ramChartStack.addImage(ramUsageChart);
         ramUsageChartImage.imageSize = new Size(100, 25);
-        chartStack.addSpacer(5);
+
+        secondColumn.addSpacer(2);
+
+        if (uptimesArray) {
+            let uptimesStack = secondColumn.addStack();
+
+            let upStack = uptimesStack.addStack();
+            let uptimesTitleText = upStack.addText('Uptimes:');
+            uptimesTitleText.font = infoFont;
+            uptimesTitleText.textColor = fontColorWhite;
+
+            let vertPointsStack = upStack.addStack();
+            vertPointsStack.layoutVertically();
+            let firstBullet = vertPointsStack.addText(bulletPointIcon + systemGuiName + ': ' + uptimesArray[0]);
+            firstBullet.font = infoFont;
+            firstBullet.textColor = fontColorWhite;
+
+            let secondBullet = vertPointsStack.addText(bulletPointIcon + 'UI-Service: ' + uptimesArray[1]);
+            secondBullet.font = infoFont;
+            secondBullet.textColor = fontColorWhite;
+        }
+        // SECOND COLUMN END//////////////////////
+
+        widget.addSpacer(10);
+
+        // BOTTOM UPDATED TEXT //////////////////////
+        let updatedAt = widget.addText('Updated: ' + timeFormatter.string(new Date()));
+        updatedAt.font = updatedAtFont;
+        updatedAt.textColor = fontColorWhite;
+        updatedAt.centerAlignText();
+        // BOTTOM UPDATED TEXT END //////////////////
+
+        if (notificationEnabled) {
+            handleNotifications(fm, hbStatus, hbUpToDate, pluginsUpToDate, nodeJsUpToDate);
+        }
+        return widget;
     }
-    // CHART STACK END //////////////////////
-
-    widget.addSpacer(10);
-
-    // LOWER PART //////////////////////
-    let row3Stack = widget.addStack();
-    row3Stack.size = new Size(maxLineWidth, 30);
-
-    let temperatureString = getTemperatureString(cpuData?.cpuTemperature.main);
-    if (temperatureString !== 'unknown') {
-        row3Stack.addSpacer(5);
-        let cpuTempText = row3Stack.addText('CPU Temp: ' + temperatureString);
-        cpuTempText.font = infoFont;
-        cpuTempText.size = new Size(150, 30);
-        cpuTempText.textColor = fontColorWhite;
-        row3Stack.addSpacer(40);
-    }
-
-    let uptimeTitleTextRef = row3Stack.addText('   Uptimes: ');
-    uptimeTitleTextRef.font = infoFont;
-    uptimeTitleTextRef.textColor = fontColorWhite;
-
-    if (uptimeText) {
-        let uptimeTextRef = row3Stack.addText(uptimeText);
-        uptimeTextRef.font = infoFont;
-        uptimeTextRef.textColor = fontColorWhite;
-    }
-    // LOWER PART END //////////////////////
-
-    widget.addSpacer(5);
-
-    // BOTTOM UPDATED TEXT //////////////////////
-    let updatedAt = widget.addText('Updated: ' + timeFormatter.string(new Date()));
-    updatedAt.font = updatedAtFont;
-    updatedAt.textColor = fontColorWhite;
-    updatedAt.centerAlignText();
-    // BOTTOM UPDATED TEXT END //////////////////
-
-    if (notificationEnabled) {
-        handleNotifications(fm, hbStatus, hbUpToDate, pluginsUpToDate, nodeJsUpToDate);
-    }
-    return widget;
 }
 
 function useCredentialsFromWidgetParameter(givenParameter) {
@@ -408,15 +441,14 @@ async function getUsedRamString(ramData) {
     return getAsRoundedString(100 - 100 * ramData.mem.available / ramData.mem.total, 2);
 }
 
-async function getUptimeString(token) {
+async function getUptimesArray(token) {
     const uptimeData = await fetchData(token, uptimeUrl());
-    if (uptimeData === undefined) return;
-    let serverTime = uptimeData.time.uptime;
-    let processUptime = uptimeData.processUptime;
-    return bulletPointIcon + systemGuiName + ': ' + formatMinutes(serverTime) + '\n' + bulletPointIcon + 'UI-Service: ' + formatMinutes(processUptime);
+    if (uptimeData === undefined) return undefined;
+
+    return [formatSeconds(uptimeData.time.uptime), formatSeconds(uptimeData.processUptime)];
 }
 
-function formatMinutes(value) {
+function formatSeconds(value) {
     if (value > 60 * 60 * 24) {
         return getAsRoundedString(value / 60 / 60 / 24, 1) + 'd';
     } else if (value > 60 * 60) {
@@ -618,7 +650,7 @@ function scheduleNotification(text) {
     let not = new Notification();
     not.title = 'Homebridge Status changed:'
     not.body = text;
-    not.addAction('Show me!', hbServiceMachineBaseUrl, false)
+    not.addAction('Show me!', hbServiceMachineBaseUrl, false);
     not.sound = 'event';
     not.schedule();
 }
