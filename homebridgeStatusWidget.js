@@ -30,6 +30,7 @@ const maxLineWidth = 310; // if layout doesn't look good for you,
 const normalLineHeight = 35; // try to tweak the (font-)sizes & remove/add spaces below
 // CONFIGURATION END //////////////////////
 
+const noAuthUrl = () => hbServiceMachineBaseUrl + '/api/auth/noauth';
 const authUrl = () => hbServiceMachineBaseUrl + '/api/auth/login';
 const cpuUrl = () => hbServiceMachineBaseUrl + '/api/status/cpu';
 const hbStatusUrl = () => hbServiceMachineBaseUrl + '/api/status/homebridge';
@@ -350,20 +351,38 @@ function useCredentialsFromWidgetParameter(givenParameter) {
 }
 
 async function getAuthToken() {
-    let req = new Request(authUrl());
+    if (hbServiceMachineBaseUrl === '>enter the ip with the port here<') {
+        throw('Base URL to machine was not provided! Edit variable called hbServiceMachineBaseUrl')
+    }
+    let req = new Request(noAuthUrl());
+    req.timeoutInterval = requestTimeoutInterval;
+    headers = {
+        'accept': '*\/*', 'Content-Type': 'application/json'
+    };
+    req.method = 'POST';
+    req.headers = headers;
+    req.body = JSON.stringify({});
+    let authData;
+    try {
+        authData = await req.loadJSON();
+    } catch (e) {
+        return UNAVAILABLE;
+    }
+    if (authData.access_token) {
+        // no credentials needed
+        return authData.access_token;
+    }
+
+    req = new Request(authUrl());
     req.timeoutInterval = requestTimeoutInterval;
     let body = {
         'username': userName,
         'password': password,
         'otp': 'string'
     };
-    let headers = {
-        'accept': '*\/*', 'Content-Type': 'application/json'
-    };
     req.body = JSON.stringify(body);
     req.method = 'POST';
     req.headers = headers;
-    let authData;
     try {
         authData = await req.loadJSON();
     } catch (e) {
