@@ -33,7 +33,7 @@
   - there is an update available for one of your plugins
   - there is an update available for node.js
 - disable notifications by setting notificationEnabled to false
-- enable getting notification when any status was yellow and is now back to normal by setting the variable disableStateBackToNormalNotifications to false
+- enable getting notification when any status was red and is now back to green (normal) by setting the variable disableStateBackToNormalNotifications to false
 - edit the variable notificationIntervalInDays to lengthen or shorten the time between getting the same notification (e.g. plugin update available) again
   - 0 means you get a notification every time the script runs (not recommended)
   - 1 means you get each possible notification to a maximum of 1 time per day

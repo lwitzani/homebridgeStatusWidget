@@ -64,6 +64,8 @@ const chartColor = new Color('#FFFFFF');
 const UNAVAILABLE = 'UNAVAILABLE';
 
 const NOTIFICATION_JSON_VERSION = 1; // never change this!
+const NOTIFICATION_JSON_FILE_NAME = 'notificationState.json'; // never change this!
+const HB_LOGO_FILE_NAME = 'hbLogo.png'; // never change this!
 
 class LineChart {
     // LineChart by https://kevinkub.de/
@@ -468,7 +470,7 @@ async function loadImage(imgUrl) {
 }
 
 async function getHbLogo(fm) {
-    let path = getStoredLogoPath(fm);
+    let path = getFilePath(HB_LOGO_FILE_NAME, fm);
     if (fm.fileExists(path)) {
         return fm.readImage(path);
     } else {
@@ -479,12 +481,12 @@ async function getHbLogo(fm) {
     }
 }
 
-function getStoredLogoPath(fm) {
+function getFilePath(fileName, fm) {
     let dirPath = fm.joinPath(fm.documentsDirectory(), 'homebridgeStatus');
     if (!fm.fileExists(dirPath)) {
         fm.createDirectory(dirPath);
     }
-    return fm.joinPath(dirPath, 'hbLogo.png');
+    return fm.joinPath(dirPath, fileName);
 }
 
 function addNotAvailableInfos(widget, titleStack) {
@@ -568,7 +570,7 @@ function addStatusInfo(lineWidget, statusBool, shownText) {
 }
 
 function handleNotifications(fm, hbRunning, hbUtd, pluginsUtd, nodeUtd) {
-    let path = getStoredNotificationStatePath(fm);
+    let path = getFilePath(NOTIFICATION_JSON_FILE_NAME, fm);
     let state = getNotificationState(fm, path);
     let now = new Date();
     let shouldUpdateState = false;
@@ -700,12 +702,4 @@ function getNotificationState(fm, path) {
 function saveNotificationState(fm, state, path) {
     let raw = JSON.stringify(state);
     fm.writeString(path, raw);
-}
-
-function getStoredNotificationStatePath(fm) {
-    let dirPath = fm.joinPath(fm.documentsDirectory(), 'homebridgeStatus');
-    if (!fm.fileExists(dirPath)) {
-        fm.createDirectory(dirPath);
-    }
-    return fm.joinPath(dirPath, 'notificationState.json');
 }
