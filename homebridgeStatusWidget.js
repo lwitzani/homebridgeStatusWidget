@@ -173,10 +173,8 @@ async function createWidget() {
     const imgWidget = titleStack.addImage(logo);
     imgWidget.imageSize = new Size(40, 30);
 
-    let headerText = titleStack.addText(' Homebridge ');
-    headerText.font = headerFont;
+    let headerText = addStyledText(titleStack, ' Homebridge ', headerFont);
     headerText.size = new Size(60, normalLineHeight);
-    headerText.textColor = fontColorWhite;
     // LOGO AND HEADER END //////////////////////
 
 
@@ -218,47 +216,17 @@ async function createWidget() {
 
     if (cpuData && ramData) {
         let mainColumns = widget.addStack();
-        mainColumns.size = new Size(maxLineWidth, 70);
-        mainColumns.addSpacer(1);
+        mainColumns.size = new Size(maxLineWidth, 77);
 
         // FIRST COLUMN //////////////////////
         let firstColumn = mainColumns.addStack();
         firstColumn.layoutVertically();
-        let cpuLoadTitle = firstColumn.addText('CPU Load: ' + getAsRoundedString(cpuData.currentLoad, 1) + '%');
-        cpuLoadTitle.font = infoFont;
-        cpuLoadTitle.textColor = fontColorWhite;
-
-        let cpuChartStack = firstColumn.addStack();
-        cpuChartStack.addSpacer(5);
-        let minMaxCpuLoadTextStack = cpuChartStack.addStack();
-        minMaxCpuLoadTextStack.layoutVertically();
-
-        let maxCpuText = minMaxCpuLoadTextStack.addText(getMaxString(cpuData.cpuLoadHistory, 2) + '%');
-        maxCpuText.font = chartAxisFont;
-        maxCpuText.textColor = fontColorWhite;
-        minMaxCpuLoadTextStack.addSpacer(6);
-        let minCpuText = minMaxCpuLoadTextStack.addText(getMinString(cpuData.cpuLoadHistory, 2) + '%');
-        minCpuText.font = chartAxisFont;
-        minCpuText.textColor = fontColorWhite;
-        minMaxCpuLoadTextStack.addSpacer(6);
-
-        cpuChartStack.addSpacer(2);
-
-        let cpuLoadChart = new LineChart(500, 100, cpuData.cpuLoadHistory).configure((ctx, path) => {
-            ctx.opaque = false;
-            ctx.setFillColor(chartColor);
-            ctx.addPath(path);
-            ctx.fillPath(path);
-        }).getImage();
-        let cpuLoadChartImage = cpuChartStack.addImage(cpuLoadChart);
-        cpuLoadChartImage.imageSize = new Size(100, 25);
-
-        firstColumn.addSpacer(2);
+        addTitleAboveChartToWidget(firstColumn, 'CPU Load: ' + getAsRoundedString(cpuData.currentLoad, 1) + '%');
+        addChartToWidget(firstColumn, cpuData.cpuLoadHistory);
 
         let temperatureString = getTemperatureString(cpuData?.cpuTemperature.main);
         if (temperatureString !== 'unknown') {
-            let cpuTempText = firstColumn.addText('CPU Temp: ' + temperatureString);
-            cpuTempText.font = infoFont;
+            let cpuTempText = addStyledText(firstColumn, 'CPU Temp: ' + temperatureString, infoFont);
             cpuTempText.size = new Size(150, 30);
             cpuTempText.textColor = fontColorWhite;
         }
@@ -269,62 +237,28 @@ async function createWidget() {
         // SECOND COLUMN //////////////////////
         let secondColumn = mainColumns.addStack();
         secondColumn.layoutVertically();
-        let ramUsageTitle = secondColumn.addText('RAM Usage: ' + usedRamText + '%');
-        ramUsageTitle.font = infoFont;
-        ramUsageTitle.textColor = fontColorWhite;
-
-        let ramChartStack = secondColumn.addStack();
-        ramChartStack.addSpacer(5);
-        let minMaxRamUsageTextStack = ramChartStack.addStack();
-        minMaxRamUsageTextStack.layoutVertically();
-
-        let maxRamText = minMaxRamUsageTextStack.addText(getMaxString(ramData.memoryUsageHistory, 2) + '%');
-        maxRamText.font = chartAxisFont;
-        maxRamText.textColor = fontColorWhite;
-        minMaxRamUsageTextStack.addSpacer(6);
-        let minRamText = minMaxRamUsageTextStack.addText(getMinString(ramData.memoryUsageHistory, 2) + '%');
-        minRamText.font = chartAxisFont;
-        minRamText.textColor = fontColorWhite;
-        minMaxRamUsageTextStack.addSpacer(6);
-
-        ramChartStack.addSpacer(2);
-
-        let ramUsageChart = new LineChart(500, 100, ramData.memoryUsageHistory).configure((ctx, path) => {
-            ctx.opaque = false;
-            ctx.setFillColor(chartColor);
-            ctx.addPath(path);
-            ctx.fillPath(path);
-        }).getImage();
-        let ramUsageChartImage = ramChartStack.addImage(ramUsageChart);
-        ramUsageChartImage.imageSize = new Size(100, 25);
-
-        secondColumn.addSpacer(2);
+        addTitleAboveChartToWidget(secondColumn, 'RAM Usage: ' + usedRamText + '%');
+        addChartToWidget(secondColumn, ramData.memoryUsageHistory);
 
         if (uptimesArray) {
             let uptimesStack = secondColumn.addStack();
 
             let upStack = uptimesStack.addStack();
-            let uptimesTitleText = upStack.addText('Uptimes:');
-            uptimesTitleText.font = infoFont;
-            uptimesTitleText.textColor = fontColorWhite;
+            addStyledText(upStack, 'Uptimes:', infoFont);
 
             let vertPointsStack = upStack.addStack();
             vertPointsStack.layoutVertically();
-            let firstBullet = vertPointsStack.addText(bulletPointIcon + systemGuiName + ': ' + uptimesArray[0]);
-            firstBullet.font = infoFont;
-            firstBullet.textColor = fontColorWhite;
 
-            let secondBullet = vertPointsStack.addText(bulletPointIcon + 'UI-Service: ' + uptimesArray[1]);
-            secondBullet.font = infoFont;
-            secondBullet.textColor = fontColorWhite;
+            addStyledText(vertPointsStack, bulletPointIcon + systemGuiName + ': ' + uptimesArray[0], infoFont);
+            addStyledText(vertPointsStack, bulletPointIcon + 'UI-Service: ' + uptimesArray[1], infoFont);
         }
         // SECOND COLUMN END//////////////////////
 
         widget.addSpacer(10);
 
         // BOTTOM UPDATED TEXT //////////////////////
-        let updatedAt = widget.addText('Updated: ' + timeFormatter.string(new Date()));
-        updatedAt.font = updatedAtFont;
+        let updatedAt = widget.addText('t: ' + timeFormatter.string(new Date()));
+        updatedAt.font = chartAxisFont;
         updatedAt.textColor = fontColorWhite;
         updatedAt.centerAlignText();
         // BOTTOM UPDATED TEXT END //////////////////
@@ -334,6 +268,55 @@ async function createWidget() {
         }
         return widget;
     }
+}
+
+function addStyledText(stackToAddTo, text, font) {
+    let textHandle = stackToAddTo.addText(text);
+    textHandle.font = font;
+    textHandle.textColor = fontColorWhite;
+    return textHandle;
+}
+
+function addTitleAboveChartToWidget(column, titleText) {
+    let cpuLoadTitle = column.addText(titleText);
+    cpuLoadTitle.font = infoFont;
+    cpuLoadTitle.textColor = fontColorWhite;
+}
+
+function addChartToWidget(column, chartData) {
+    let horizontalStack = column.addStack();
+    horizontalStack.addSpacer(5);
+    let yAxisLabelsStack = horizontalStack.addStack();
+    yAxisLabelsStack.layoutVertically();
+
+    addStyledText(yAxisLabelsStack, getMaxString(chartData, 2) + '%', chartAxisFont);
+    yAxisLabelsStack.addSpacer(6);
+    addStyledText(yAxisLabelsStack, getMinString(chartData, 2) + '%', chartAxisFont);
+    yAxisLabelsStack.addSpacer(6);
+
+    horizontalStack.addSpacer(2);
+
+    let chartImage = new LineChart(500, 100, chartData).configure((ctx, path) => {
+        ctx.opaque = false;
+        ctx.setFillColor(chartColor);
+        ctx.addPath(path);
+        ctx.fillPath(path);
+    }).getImage();
+
+    let vertChartImageStack = horizontalStack.addStack();
+    vertChartImageStack.layoutVertically();
+
+    let chartImageHandle = vertChartImageStack.addImage(chartImage);
+    chartImageHandle.imageSize = new Size(100, 25);
+
+    let xAxisStack = vertChartImageStack.addStack();
+    xAxisStack.size = new Size(100, 10);
+
+    addStyledText(xAxisStack, 't-10m', chartAxisFont);
+    xAxisStack.addSpacer(75);
+    addStyledText(xAxisStack, 't', chartAxisFont);
+
+    column.addSpacer(7);
 }
 
 function useCredentialsFromWidgetParameter(givenParameter) {
@@ -352,7 +335,7 @@ function useCredentialsFromWidgetParameter(givenParameter) {
 
 async function getAuthToken() {
     if (hbServiceMachineBaseUrl === '>enter the ip with the port here<') {
-        throw('Base URL to machine was not provided! Edit variable called hbServiceMachineBaseUrl')
+        throw('Base URL to machine not entered! Edit variable called hbServiceMachineBaseUrl')
     }
     let req = new Request(noAuthUrl());
     req.timeoutInterval = requestTimeoutInterval;
