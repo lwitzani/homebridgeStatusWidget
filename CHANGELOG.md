@@ -1,5 +1,17 @@
 I try to list the changes i make in this changelog:
 
+#19.11.2020 22:26
+- hope you can figure out how to use the configuration :) :
+- added support for persisting and loading configurations -> now you can configure everything once as you like, create a configuration.json file, save it in e.g. iCloud and from there you can easily use this file via a widget parameter and don't have to think about reconfiguring everything after updating the script itself
+- the new parameter must have the form USE_CONFIG:yourfilename.json (so it starts with USE_CONFIG: and ends with .json. The middle part can be chosen by you)
+- tried my best to make this as stylable as possible
+- support for dark and light versions of purple and black (can be set automatically)
+- you can now set chart color, font color, set own background colors and more
+- added x axis label for charts
+- did a pretty large code refactoring without function changes
+- added support for Homebridge Config UI X Authentication Mode 'none' -> so if you chose 'none' and don't need credentials to show your UI in the browser, you now don't need it for this widget anymore
+- new screenshots
+
 #17.11.2020 22:08
 - complete overhaul of the section above the updated date and below the title for perfect alignment (now only using stacks and spacers)
 - only updated one picture (the main pic on top of readme)

@@ -24,12 +24,21 @@ class Configuration {
     temperatureUnitConfig = 'CELSIUS'; // options are CELSIUS or FAHRENHEIT
     requestTimeoutInterval = 2; // in seconds; If requests take longer, the script is stopped. Increase it if it doesn't work or you
     pluginsOrSwUpdatesToIgnore = []; // a string array; enter the exact npm-plugin-names e.g. 'homebridge-fritz' or additionally 'HOMEBRIDGE_UTD' or 'NODEJS_UTD' if you do not want to have them checked for their latest versions
-    bgColorMode = 'PURPLE'; // default is PURPLE. Other options: BLACK or BLUE_TO_RED
-
+    adaptToLightOrDarkMode = true; // if one of the purple or black options is chosen, the widget will adapt to dark/light mode if true
+    bgColorMode = 'PURPLE_LIGHT'; // default is PURPLE_LIGHT. Other options: PURPLE_DARK, BLACK_LIGHT, BLACK_DARK, CUSTOM (custom colors will be used, see below)
+    customBackgroundColor1 = '#3e00fa'; // if bgColorMode CUSTOM is used a LinearGradient is created from customBackgroundColor1 and customBackgroundColor2
+    customBackgroundColor2 = '#7a04d4'; // you can use your own colors here; they are saved in the configuration
+    chartColor = '#FFFFFF';
+    fontColor = '#FFFFFF';
     failIcon = '❌';
     bulletPointIcon = '🔸';
     decimalChar = ','; // if you like a dot as decimal separator make the comma to a dot here
     jsonVersion = CONFIGURATION_JSON_VERSION; // do not change this
+    enableSiriFeedback = false; // this does nothing atm, but maybe i use this in the future
+    defaultLocaleToUseForSiri = 'de'; // this does nothing atm, but maybe i use this in the future
+
+// logo is downloaded only the first time! It is saved in iCloud and then loaded from there everytime afterwards
+    logoUrl = 'https://github.com/homebridge/branding/blob/master/logos/homebridge-silhouette-round-white.png?raw=true';
 }
 
 // CONFIGURATION END //////////////////////
@@ -43,8 +52,6 @@ const uptimeUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/upt
 const pluginsUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/plugins';
 const hbVersionUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/homebridge-version';
 const nodeJsUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/nodejs';
-// logo is downloaded only the first time! It is saved in iCloud and then loaded from there everytime afterwards
-const logoUrl = 'https://github.com/homebridge/branding/blob/master/logos/homebridge-silhouette-round-white.png?raw=true';
 
 
 const maxLineWidth = 310; // if layout doesn't look good for you,
@@ -55,20 +62,12 @@ const headerFont = Font.boldMonospacedSystemFont(12);
 const infoFont = Font.systemFont(10);
 const chartAxisFont = Font.systemFont(7);
 const updatedAtFont = Font.systemFont(7);
-const fontColorWhite = new Color('FFFFFF');
-const bgColorPurple = new Color('#421367');
-const bgColorBrighterPurple = new Color('#481367');
-const purpleBgGradient = new LinearGradient();
-purpleBgGradient.locations = [0, 1];
-purpleBgGradient.colors = [bgColorPurple, bgColorBrighterPurple];
-const blackBgGradient = new LinearGradient();
-blackBgGradient.locations = [0, 1];
-blackBgGradient.colors = [new Color('111111'), new Color('222222')];
-const blueToRedBgGradient = new LinearGradient();
-blueToRedBgGradient.locations = [0, 1];
-blueToRedBgGradient.colors = [new Color('3e00fa'), new Color('7a04d4')];
 
-const chartColor = new Color('#FFFFFF');
+const purpleBgGradient_light = createLinearGradient('#421367', '#481367');
+const purpleBgGradient_dark = createLinearGradient('#250b3b', '#320d47');
+const blackBgGradient_light = createLinearGradient('#707070', '#3d3d3d');
+const blackBgGradient_dark = createLinearGradient('#111111', '#222222');
+
 const UNAVAILABLE = 'UNAVAILABLE';
 
 const NOTIFICATION_JSON_VERSION = 1; // never change this!
@@ -77,22 +76,10 @@ const HB_LOGO_FILE_NAME = 'hbLogo.png'; // never change this!
 
 const INITIAL_NOTIFICATION_STATE = {
     'jsonVersion': NOTIFICATION_JSON_VERSION,
-    'hbRunning': {
-        'status': true,
-        'lastNotified': undefined
-    },
-    'hbUtd': {
-        'status': true,
-        'lastNotified': undefined
-    },
-    'pluginsUtd': {
-        'status': true,
-        'lastNotified': undefined
-    },
-    'nodeUtd': {
-        'status': true,
-        'lastNotified': undefined
-    }
+    'hbRunning': {'status': true},
+    'hbUtd': {'status': true},
+    'pluginsUtd': {'status': true},
+    'nodeUtd': {'status': true}
 };
 
 class LineChart {
@@ -157,6 +144,7 @@ if (!config.runsInWidget) {
 
 Script.setWidget(widget);
 Script.complete();
+
 // WIDGET INIT END //////////////////
 
 
@@ -174,7 +162,7 @@ async function createWidget() {
 //      a valid real example: admin,,mypassword123,,http://192.168.178.33:8581
 //      If no password is needed for you to login just enter anything: xyz,,xyz,,http://192.168.178.33:8581
         if (args.widgetParameter.length > 0) {
-            let foundCredentialsInParameter = checkifCredentialsParameterAreProvided(args.widgetParameter);
+            let foundCredentialsInParameter = useCredentialsFromWidgetParameter(args.widgetParameter);
             let fileNameSuccessfullySet = false;
             if (!foundCredentialsInParameter) {
                 fileNameSuccessfullySet = checkIfConfigFileParameterIsProvided(fm, args.widgetParameter);
@@ -196,13 +184,8 @@ async function createWidget() {
         throw('Credentials not valid');
     }
     let widget = new ListWidget();
-    if (CONFIGURATION.bgColorMode === 'BLACK') {
-        widget.backgroundGradient = blackBgGradient;
-    } else if (CONFIGURATION.bgColorMode === 'BLUE_TO_RED') {
-        widget.backgroundGradient = blueToRedBgGradient;
-    } else {
-        widget.backgroundGradient = purpleBgGradient;
-    }
+
+    handleSettingOfBackgroundColor(widget);
 
     if (token !== UNAVAILABLE) {
         widget.addSpacer(10);
@@ -241,7 +224,6 @@ async function createWidget() {
         persistObject(fm, CONFIGURATION, pathToConfig);
     }
 
-
     // STATUS PANEL IN THE HEADER ///////////////////
     let statusInfo = titleStack.addStack();
     statusInfo.layoutVertically();
@@ -277,7 +259,7 @@ async function createWidget() {
         if (temperatureString !== 'unknown') {
             let cpuTempText = addStyledText(firstColumn, 'CPU Temp: ' + temperatureString, infoFont);
             cpuTempText.size = new Size(150, 30);
-            cpuTempText.textColor = fontColorWhite;
+            cpuTempText.textColor = new Color(CONFIGURATION.fontColor);
         }
         // FIRST COLUMN END //////////////////////
 
@@ -317,17 +299,68 @@ async function createWidget() {
     }
 }
 
+function handleSettingOfBackgroundColor(widget) {
+    if (!CONFIGURATION.adaptToLightOrDarkMode) {
+        switch (CONFIGURATION.bgColorMode) {
+            case "CUSTOM":
+                widget.backgroundGradient = createLinearGradient(CONFIGURATION.customBackgroundColor1, CONFIGURATION.customBackgroundColor2);
+                break;
+            case "BLACK_LIGHT":
+                widget.backgroundGradient = blackBgGradient_light;
+                break;
+            case "BLACK_DARK":
+                widget.backgroundGradient = blackBgGradient_dark;
+                break;
+            case "PURPLE_DARK":
+                widget.backgroundGradient = purpleBgGradient_dark;
+                break;
+            case "PURPLE_LIGHT":
+            default:
+                widget.backgroundGradient = purpleBgGradient_light;
+        }
+    } else {
+        switch (CONFIGURATION.bgColorMode) {
+            case "CUSTOM":
+                widget.backgroundGradient = createLinearGradient(CONFIGURATION.customBackgroundColor1, CONFIGURATION.customBackgroundColor2);
+                break;
+            case "BLACK_LIGHT":
+            case "BLACK_DARK":
+                determinGradient(widget, blackBgGradient_light, blackBgGradient_dark);
+                break;
+            case "PURPLE_DARK":
+            case "PURPLE_LIGHT":
+            default:
+                determinGradient(widget, purpleBgGradient_light, purpleBgGradient_dark);
+        }
+    }
+}
+
+function determinGradient(widget, lightOption, darkOption) {
+    if (Device.isUsingDarkAppearance()) {
+        widget.backgroundGradient = darkOption;
+    } else {
+        widget.backgroundGradient = lightOption;
+    }
+}
+
+function createLinearGradient(color1, color2) {
+    const gradient = new LinearGradient();
+    gradient.locations = [0, 1];
+    gradient.colors = [new Color(color1), new Color(color2)];
+    return gradient;
+}
+
 function addStyledText(stackToAddTo, text, font) {
     let textHandle = stackToAddTo.addText(text);
     textHandle.font = font;
-    textHandle.textColor = fontColorWhite;
+    textHandle.textColor = new Color(CONFIGURATION.fontColor);
     return textHandle;
 }
 
 function addTitleAboveChartToWidget(column, titleText) {
     let cpuLoadTitle = column.addText(titleText);
     cpuLoadTitle.font = infoFont;
-    cpuLoadTitle.textColor = fontColorWhite;
+    cpuLoadTitle.textColor = new Color(CONFIGURATION.fontColor);
 }
 
 function addChartToWidget(column, chartData) {
@@ -345,7 +378,7 @@ function addChartToWidget(column, chartData) {
 
     let chartImage = new LineChart(500, 100, chartData).configure((ctx, path) => {
         ctx.opaque = false;
-        ctx.setFillColor(chartColor);
+        ctx.setFillColor(new Color(CONFIGURATION.chartColor));
         ctx.addPath(path);
         ctx.fillPath(path);
     }).getImage();
@@ -377,7 +410,7 @@ function checkIfConfigFileParameterIsProvided(fm, givenParameter) {
     return false;
 }
 
-function checkifCredentialsParameterAreProvided(givenParameter) {
+function useCredentialsFromWidgetParameter(givenParameter) {
     if (givenParameter.includes(',,')) {
         let credentials = givenParameter.split(',,');
         if (credentials.length === 3 && credentials[0].length > 0 && credentials[1].length > 0 &&
@@ -535,7 +568,7 @@ async function getHbLogo(fm) {
         return fm.readImage(path);
     } else {
         // logo did not exist -> download it and save it for next time the widget runs
-        const logo = await loadImage(logoUrl);
+        const logo = await loadImage(CONFIGURATION.logoUrl);
         fm.writeImage(path, logo);
         return logo;
     }
@@ -551,18 +584,18 @@ function getFilePath(fileName, fm) {
 
 function addNotAvailableInfos(widget, titleStack) {
     let statusInfo = titleStack.addText('                                                 ');
-    statusInfo.textColor = fontColorWhite;
+    statusInfo.textColor = new Color(CONFIGURATION.fontColor);
     statusInfo.size = new Size(150, normalLineHeight);
     let errorText = widget.addText('   ' + CONFIGURATION.failIcon + ' UI-Service not reachable!\n          👉🏻 Server started?\n          👉🏻 UI-Service process started?\n          👉🏻 Server-URL ' + CONFIGURATION.hbServiceMachineBaseUrl + ' correct?\n          👉🏻 Are you in the same network?');
     errorText.size = new Size(410, 130);
     errorText.font = infoFont;
-    errorText.textColor = fontColorWhite;
+    errorText.textColor = new Color(CONFIGURATION.fontColor);
 
 
     widget.addSpacer(15);
     let updatedAt = widget.addText('Updated: ' + timeFormatter.string(new Date()));
     updatedAt.font = updatedAtFont;
-    updatedAt.textColor = fontColorWhite;
+    updatedAt.textColor = new Color(CONFIGURATION.fontColor);
     updatedAt.centerAlignText();
 
     return widget;
@@ -626,7 +659,7 @@ function addStatusInfo(lineWidget, statusBool, shownText) {
     itemStack.addSpacer(2);
     let text = itemStack.addText(shownText);
     text.font = Font.semiboldMonospacedSystemFont(10);
-    text.textColor = fontColorWhite;
+    text.textColor = new Color(CONFIGURATION.fontColor);
 }
 
 function handleNotifications(fm, hbRunning, hbUtd, pluginsUtd, nodeUtd) {

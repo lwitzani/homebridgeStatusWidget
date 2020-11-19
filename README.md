@@ -1,4 +1,4 @@
-![](images/widget_purple.jpg)
+![](images/widget_purple_light.jpg)
 
 # Homebridge Status Widget
 - Script for the iOS App Scriptable that shows a small summary of your Homebridge instance
@@ -8,17 +8,35 @@
 - This script was developed with Homebridge Config UI X in version 4.32.0 (2020-11-06), Homebridge at version 1.1.6 and Scriptable app in version 1.6.1 on iOS 14.2. Maybe you need to update the UI-service OR Homebridge OR the Scriptable app OR your iPhone if this script does not work for you
 - also thanks to github user kevinkub for providing a line chart example at https://gist.github.com/kevinkub/b74f9c16f050576ae760a7730c19b8e2
 
-# How to use
-- updatable way supporting the install script from https://scriptdu.de (very recommended):
+# How to use (3 setup possibilities)
+- the best way (updatable, supporting the install script from https://scriptdu.de (very recommended)):
+  - the script has a configuration mechanism that saves all configurations (in the Configuration class) to iCloud persistently
+  - this means the configuration you make can be reused once you install a newer version of this script
+  - following variables exist in the configuration: ![](images/config.png)
+  - three variables controll this mechanism:
+     - configurationFileName = 'purple.json' // change this to an own name e.g. 'configBlack.json' . This name can then be given as a widget parameter in the form 'USE_CONFIG:yourfilename.json' so you don't loose your preferred configuration across script updates (but you will loose it if i have to change the configuration format)
+     - usePersistedConfiguration = true; // false would mean to use the visible configuration below; true means the state saved in iCloud (or locally) will be used
+     - overwritePersistedConfig = false; // if you like your configuration, run the script ONCE with this param to true, then it is saved and can be used via 'USE_CONFIG:yourfilename.json' in widget params
+  - so basically what you need to do is:
+     - choose a configurationFileName (must end with '.json')
+     - set overwritePersistedConfig to true
+     - configure every configuration-variable exactly as you want
+     - run the script once (this creates a json file in icloud, you can always delete it to start from scratch)
+     - set overwritePersistedConfig to false
+     - set the widget up with a single parameter in the format 'USE_CONFIG:yourfilename.json' ![](images/use_config_via_parameter.jpeg)
+  - as long as overwritePersistedConfig is false, any change to the config won't take any effect because the persisted one is used if usePersistedConfiguration is true
+- another updatable way:
    - set the widget up with parameter in the format \<username>,,\<password>,,\<hbServiceMachineBaseUrl>
    - a valid real example: "admin,,mypassword123,,http://192.168.178.33:8581"
+   - if you have authentication set to non in UI-X then just provide any char. Valid would be e.g. "x,,x,,http://192.168.178.33:8581"
+   - maybe you need to set usePersistedConfiguration in the config to false to use this older way
    - screenshot of an example when setting it up: ![](images/example_parameter_setup.jpeg)
-   
-- hard coded way: you need to configure 
+
+- hard coded way in the script (not recommended): you need to configure 
    - the **URL** of the system running the Homebridge Config UI X (the hb-service), including the port e.g. http://192.168.178.33:8581
    - **username** of the administrator of the homebridge-config-ui-x instance (not the actual linux user)
    - **password** of the administrator of the homebridge-config-ui-x instance
-- the residual parameter can be tweaked a bit for your needs
+   - the residual parameter can be tweaked a bit for your needs
    - e.g. fileManagerMode, must be set to LOCAL if you do not use iCloud Drive. Default is ICLOUD
    - e.g. the systemGuiName, the name of your system running the Homebridge Config UI X (the hb-service)
    - e.g. the timeout could be increased if your system does not respond within 2 second
@@ -40,12 +58,11 @@
   - 0.5 means you get each possible notification to a maximum of 2 times per day
 - Open a notification to reveal the "Show me!" button which takes you directly to Homebridge Config UI X
 - Here are some screenshots: 
-![](images/notification_plugin_update.jpeg)
-![](images/notification_homebridge_update.jpeg)
 ![](images/notification_homebridge_stopped.jpg)
-![](images/notification_homebridge_stopped_extended.jpg)
+![](images/notification_homebridge_update.jpg)
+![](images/notification_homebridge_update_extended.jpg)
 
-# Ignoring specific plugins or software
+# Ignoring specific plugin or software updates
 - by filling the empty array of the variable pluginsOrSwUpdatesToIgnore with strings, you can now configure to ignore plugins, Homebridge or Node.js during checking for updates
 - succesfully ignored software will not influence the shown status (e.g. ignoring homebridge UTD status will result in showing the green status always even if there is an update available)
   - for ignoring plugins, enter their npm name (e.g. 'homebridge-fritz') as string in the given empty array 
@@ -55,10 +72,18 @@
 
 
 # Styling
-- at the top of the script there is a variable bgColorMode that you can set to 'BLACK' or 'BLUE_TO_RED' to use other variants which look as the following:
-![](images/widget_black.jpg)
-![](images/notAvailable_black.jpg)
-![](images/widget_blue_to_red.jpg)
+- at the top of the script there is a variable bgColorMode that you can set to 'PURPLE_LIGHT', 'PURPLE_DARK', 'BLACK_LIGHT', BLACK_DARK', or 'CUSTOM'
+![](images/widget_purple_light.jpg)
+![](images/widget_purple_dark.jpg)
+![](images/widget_black_light.jpg)
+![](images/widget_black_dark.jpg)
+- in CUSTOM mode the values defined in customBackgroundColor1 and customBackgroundColor2 are used (you can choose!) 
+![](images/widget_custom_blue.jpg)
+![](images/widget_custom_blue_green_charts.jpg)
+- adaptToLightOrDarkMode toggles to react to light/dark mode automatically (only supports the purple and black modes)
+- fontColor sets all texts to your chosen color
+- chartColor controls which color the carts have
+- you even can experiment with logoUrl and choose another logo to download from anywhere
 - you can also change the icons failIcon = ❌ and bulletPointIcon = 🔸 by providing any other emoji
 
 # Infos shown in the widget
@@ -82,3 +107,4 @@
   - Homebridge 1.1.6
   - iOS 14.2
 - if your Homebridge Config UI X is reachable and the authentication process succeeded but the further API requests take to long or fail you will get a screen similar to ![](images/unknown.jpg)
+- open a github issue if you can't figure it out what the problem is
