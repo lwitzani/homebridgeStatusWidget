@@ -20,7 +20,7 @@
   - so basically what you need to do is:
      - choose a configurationFileName (must end with '.json')
      - set overwritePersistedConfig to true
-     - configure every configuration-variable exactly as you want
+     - configure every configuration-variable exactly as you want (including the CREDENTIALS and the URL!)
      - run the script once (this creates a json file in icloud, you can always delete it to start from scratch)
      - set overwritePersistedConfig to false
      - set the widget up with a single parameter in the format 'USE_CONFIG:yourfilename.json' ![](images/use_config_via_parameter.jpeg)
@@ -82,7 +82,7 @@
 ![](images/widget_custom_blue_green_charts.jpg)
 - adaptToLightOrDarkMode toggles to react to light/dark mode automatically (only supports the purple and black modes)
 - fontColor sets all texts to your chosen color
-- chartColor controls which color the carts have
+- chartColor controls which color the charts have
 - you even can experiment with logoUrl and choose another logo to download from anywhere
 - you can also change the icons failIcon = ❌ and bulletPointIcon = 🔸 by providing any other emoji
 
