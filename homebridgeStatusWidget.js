@@ -8,7 +8,7 @@ const usePersistedConfiguration = true; // false would mean to use the visible c
 const overwritePersistedConfig = false; // if you like your configuration, run the script ONCE with this param to true, then it is saved and can be used via 'USE_CONFIG:yourfilename.json' in widget params
 // *********
 
-const CONFIGURATION_JSON_VERSION = 1; // never change this! If i need to change the structure of configuration class, i will increase this counter. Your created config files sadly won't be compatible afterwards.
+const CONFIGURATION_JSON_VERSION = 2; // never change this! If i need to change the structure of configuration class, i will increase this counter. Your created config files sadly won't be compatible afterwards.
 // CONFIGURATION //////////////////////
 class Configuration {
     // you must at least configure the next 3 lines to make this script work or use credentials in parameter when setting up the widget (see the readme on github)
@@ -19,17 +19,20 @@ class Configuration {
 
     notificationIntervalInDays = 1; // minimum amount of days between the notification about the same topic; 0 means notification everytime the script is run (SPAM). 1 means you get 1 message per status category per day (maximum of 4 messages per day since there are 4 categories). Can also be something like 0.5 which means in a day you can get up to 8 messages
     disableStateBackToNormalNotifications = true; // set to false, if you want to be notified e.g. when Homebridge is running again after it stopped
-    systemGuiName = 'Raspberry Pi'; // name of the system your service is running on
     fileManagerMode = 'ICLOUD'; // default is ICLOUD. If you don't use iCloud Drive use option LOCAL
     temperatureUnitConfig = 'CELSIUS'; // options are CELSIUS or FAHRENHEIT
     requestTimeoutInterval = 2; // in seconds; If requests take longer, the script is stopped. Increase it if it doesn't work or you
     pluginsOrSwUpdatesToIgnore = []; // a string array; enter the exact npm-plugin-names e.g. 'homebridge-fritz' or additionally 'HOMEBRIDGE_UTD' or 'NODEJS_UTD' if you do not want to have them checked for their latest versions
     adaptToLightOrDarkMode = true; // if one of the purple or black options is chosen, the widget will adapt to dark/light mode if true
     bgColorMode = 'PURPLE_LIGHT'; // default is PURPLE_LIGHT. Other options: PURPLE_DARK, BLACK_LIGHT, BLACK_DARK, CUSTOM (custom colors will be used, see below)
-    customBackgroundColor1 = '#3e00fa'; // if bgColorMode CUSTOM is used a LinearGradient is created from customBackgroundColor1 and customBackgroundColor2
-    customBackgroundColor2 = '#7a04d4'; // you can use your own colors here; they are saved in the configuration
-    chartColor = '#FFFFFF';
-    fontColor = '#FFFFFF';
+    customBackgroundColor1_light = '#3e00fa'; // if bgColorMode CUSTOM is used a LinearGradient is created from customBackgroundColor1_light and customBackgroundColor2_light
+    customBackgroundColor2_light = '#7a04d4'; // you can use your own colors here; they are saved in the configuration
+    customBackgroundColor1_dark = '#3e00fa'; // if bgColorMode CUSTOM together with adaptToLightOrDarkMode = true is used, the light and dark custom values are used depending on the active mode
+    customBackgroundColor2_dark = '#7a04d4';
+    chartColor_light = '#FFFFFF'; // _light is the default color if adaptToLightOrDarkMode is false
+    chartColor_dark = '#FFFFFF';
+    fontColor_light = '#FFFFFF'; // _light the default color if adaptToLightOrDarkMode is false
+    fontColor_dark = '#FFFFFF';
     failIcon = '❌';
     bulletPointIcon = '🔸';
     decimalChar = ','; // if you like a dot as decimal separator make the comma to a dot here
@@ -39,6 +42,45 @@ class Configuration {
 
 // logo is downloaded only the first time! It is saved in iCloud and then loaded from there everytime afterwards
     logoUrl = 'https://github.com/homebridge/branding/blob/master/logos/homebridge-silhouette-round-white.png?raw=true';
+
+    // icons:
+    icon_statusGood = 'checkmark.circle.fill'; // can be any SFSymbol
+    icon_colorGood = '#'+ Color.green().hex; // must have form like '#FFFFFF'
+    icon_statusBad = 'exclamationmark.triangle.fill'; // can be any SFSymbol
+    icon_colorBad = '#'+ Color.red().hex;// must have form like '#FFFFFF'
+    icon_statusUnknown = 'questionmark.circle.fill'; // can be any SFSymbol
+    icon_colorUnknown = '#'+ Color.yellow().hex;// must have form like '#FFFFFF'
+
+    // internationalization:
+    status_hbRunning = 'Running';
+    status_hbUtd = 'UTD';
+    status_pluginsUtd = 'Plugins UTD';
+    status_nodejsUtd = 'Node.js UTD';
+
+    title_cpuLoad = 'CPU Load: ';
+    title_cpuTemp = 'CPU Temp: ';
+    title_ramUsage = 'RAM Usage: ';
+    title_uptimes = 'Uptimes:';
+
+    title_uiService = 'UI-Service: ';
+    title_systemGuiName = 'Raspberry Pi: '; // name of the system your service is running on
+
+    notification_title = 'Homebridge Status changed:';
+    notification_expandedButtonText = 'Show me!';
+    notification_ringTone = 'event'; // all ringtones of Scriptable are possible: default, accept, alert, complete, event, failure, piano_error, piano_success, popup
+
+
+    notifyText_hbNotRunning = 'Your Homebridge instance stopped 😱';
+    notifyText_hbNotUtd = 'Update available for Homebridge 😎';
+    notifyText_pluginsNotUtd = 'Update available for one of your Plugins 😎';
+
+    notifyText_nodejsNotUtd = 'Update available for Node.js 😎';
+    notifyText_hbNotRunning_backNormal = 'Your Homebridge instance is back online 😁';
+    notifyText_hbNotUtd_backNormal = 'Homebridge is now up to date ✌️';
+    notifyText_pluginsNotUtd_backNormal = 'Plugins are now up to date ✌️';
+    notifyText_nodejsNotUtd_backNormal = 'Node.js is now up to date ✌️';
+
+    error_noConnectionText = '   ' + this.failIcon + ' UI-Service not reachable!\n          ' + this.bulletPointIcon + ' Server started?\n          ' + this.bulletPointIcon + ' UI-Service process started?\n          ' + this.bulletPointIcon + ' Server-URL ' + this.hbServiceMachineBaseUrl + ' correct?\n          ' + this.bulletPointIcon + ' Are you in the same network?';
 }
 
 // CONFIGURATION END //////////////////////
@@ -230,17 +272,17 @@ async function createWidget() {
 
     let firstLine = statusInfo.addStack();
     firstLine.addSpacer(15);
-    addStatusInfo(firstLine, hbStatus, 'Running');
+    addStatusInfo(firstLine, hbStatus, CONFIGURATION.status_hbRunning);
     firstLine.addSpacer(30);
-    addStatusInfo(firstLine, hbUpToDate, 'UTD');
+    addStatusInfo(firstLine, hbUpToDate, CONFIGURATION.status_hbUtd);
     statusInfo.addSpacer(5); // space between the lines
 
     let secondLine = statusInfo.addStack();
     secondLine.addSpacer(15);
-    addStatusInfo(secondLine, pluginsUpToDate, 'Plugins UTD');
+    addStatusInfo(secondLine, pluginsUpToDate, CONFIGURATION.status_pluginsUtd);
     secondLine.addSpacer(9);
 
-    addStatusInfo(secondLine, nodeJsUpToDate, 'Node.js UTD');
+    addStatusInfo(secondLine, nodeJsUpToDate, CONFIGURATION.status_nodejsUtd);
     // STATUS PANEL IN THE HEADER END ////////////////
 
     widget.addSpacer(10);
@@ -252,14 +294,14 @@ async function createWidget() {
         // FIRST COLUMN //////////////////////
         let firstColumn = mainColumns.addStack();
         firstColumn.layoutVertically();
-        addTitleAboveChartToWidget(firstColumn, 'CPU Load: ' + getAsRoundedString(cpuData.currentLoad, 1) + '%');
+        addTitleAboveChartToWidget(firstColumn, CONFIGURATION.title_cpuLoad + getAsRoundedString(cpuData.currentLoad, 1) + '%');
         addChartToWidget(firstColumn, cpuData.cpuLoadHistory);
 
         let temperatureString = getTemperatureString(cpuData?.cpuTemperature.main);
         if (temperatureString !== 'unknown') {
-            let cpuTempText = addStyledText(firstColumn, 'CPU Temp: ' + temperatureString, infoFont);
+            let cpuTempText = addStyledText(firstColumn, CONFIGURATION.title_cpuTemp + temperatureString, infoFont);
             cpuTempText.size = new Size(150, 30);
-            cpuTempText.textColor = new Color(CONFIGURATION.fontColor);
+            setTextColor(cpuTempText);
         }
         // FIRST COLUMN END //////////////////////
 
@@ -268,20 +310,20 @@ async function createWidget() {
         // SECOND COLUMN //////////////////////
         let secondColumn = mainColumns.addStack();
         secondColumn.layoutVertically();
-        addTitleAboveChartToWidget(secondColumn, 'RAM Usage: ' + usedRamText + '%');
+        addTitleAboveChartToWidget(secondColumn, CONFIGURATION.title_ramUsage + usedRamText + '%');
         addChartToWidget(secondColumn, ramData.memoryUsageHistory);
 
         if (uptimesArray) {
             let uptimesStack = secondColumn.addStack();
 
             let upStack = uptimesStack.addStack();
-            addStyledText(upStack, 'Uptimes:', infoFont);
+            addStyledText(upStack, CONFIGURATION.title_uptimes, infoFont);
 
             let vertPointsStack = upStack.addStack();
             vertPointsStack.layoutVertically();
 
-            addStyledText(vertPointsStack, CONFIGURATION.bulletPointIcon + CONFIGURATION.systemGuiName + ': ' + uptimesArray[0], infoFont);
-            addStyledText(vertPointsStack, CONFIGURATION.bulletPointIcon + 'UI-Service: ' + uptimesArray[1], infoFont);
+            addStyledText(vertPointsStack, CONFIGURATION.bulletPointIcon + CONFIGURATION.title_systemGuiName + uptimesArray[0], infoFont);
+            addStyledText(vertPointsStack, CONFIGURATION.bulletPointIcon + CONFIGURATION.title_uiService + uptimesArray[1], infoFont);
         }
         // SECOND COLUMN END//////////////////////
 
@@ -303,7 +345,7 @@ function handleSettingOfBackgroundColor(widget) {
     if (!CONFIGURATION.adaptToLightOrDarkMode) {
         switch (CONFIGURATION.bgColorMode) {
             case "CUSTOM":
-                widget.backgroundGradient = createLinearGradient(CONFIGURATION.customBackgroundColor1, CONFIGURATION.customBackgroundColor2);
+                widget.backgroundGradient = createLinearGradient(CONFIGURATION.customBackgroundColor1_light, CONFIGURATION.customBackgroundColor2_light);
                 break;
             case "BLACK_LIGHT":
                 widget.backgroundGradient = blackBgGradient_light;
@@ -321,25 +363,43 @@ function handleSettingOfBackgroundColor(widget) {
     } else {
         switch (CONFIGURATION.bgColorMode) {
             case "CUSTOM":
-                widget.backgroundGradient = createLinearGradient(CONFIGURATION.customBackgroundColor1, CONFIGURATION.customBackgroundColor2);
+                setGradient(widget,
+                    createLinearGradient(CONFIGURATION.customBackgroundColor1_light, CONFIGURATION.customBackgroundColor2_light),
+                    createLinearGradient(CONFIGURATION.customBackgroundColor1_dark, CONFIGURATION.customBackgroundColor2_dark));
                 break;
             case "BLACK_LIGHT":
             case "BLACK_DARK":
-                determinGradient(widget, blackBgGradient_light, blackBgGradient_dark);
+                setGradient(widget, blackBgGradient_light, blackBgGradient_dark);
                 break;
             case "PURPLE_DARK":
             case "PURPLE_LIGHT":
             default:
-                determinGradient(widget, purpleBgGradient_light, purpleBgGradient_dark);
+                setGradient(widget, purpleBgGradient_light, purpleBgGradient_dark);
         }
     }
 }
 
-function determinGradient(widget, lightOption, darkOption) {
+function setGradient(widget, lightOption, darkOption) {
     if (Device.isUsingDarkAppearance()) {
         widget.backgroundGradient = darkOption;
     } else {
         widget.backgroundGradient = lightOption;
+    }
+}
+
+function getChartColorToUse() {
+    if (CONFIGURATION.adaptToLightOrDarkMode && Device.isUsingDarkAppearance()) {
+        return new Color(CONFIGURATION.chartColor_dark);
+    } else {
+        return new Color(CONFIGURATION.chartColor_light);
+    }
+}
+
+function setTextColor(textWidget) {
+    if (CONFIGURATION.adaptToLightOrDarkMode && Device.isUsingDarkAppearance()) {
+        textWidget.textColor = new Color(CONFIGURATION.fontColor_dark);
+    } else {
+        textWidget.textColor = new Color(CONFIGURATION.fontColor_light);
     }
 }
 
@@ -353,14 +413,14 @@ function createLinearGradient(color1, color2) {
 function addStyledText(stackToAddTo, text, font) {
     let textHandle = stackToAddTo.addText(text);
     textHandle.font = font;
-    textHandle.textColor = new Color(CONFIGURATION.fontColor);
+    setTextColor(textHandle);
     return textHandle;
 }
 
 function addTitleAboveChartToWidget(column, titleText) {
     let cpuLoadTitle = column.addText(titleText);
     cpuLoadTitle.font = infoFont;
-    cpuLoadTitle.textColor = new Color(CONFIGURATION.fontColor);
+    setTextColor(cpuLoadTitle);
 }
 
 function addChartToWidget(column, chartData) {
@@ -378,7 +438,7 @@ function addChartToWidget(column, chartData) {
 
     let chartImage = new LineChart(500, 100, chartData).configure((ctx, path) => {
         ctx.opaque = false;
-        ctx.setFillColor(new Color(CONFIGURATION.chartColor));
+        ctx.setFillColor(getChartColorToUse());
         ctx.addPath(path);
         ctx.fillPath(path);
     }).getImage();
@@ -584,18 +644,18 @@ function getFilePath(fileName, fm) {
 
 function addNotAvailableInfos(widget, titleStack) {
     let statusInfo = titleStack.addText('                                                 ');
-    statusInfo.textColor = new Color(CONFIGURATION.fontColor);
+    setTextColor(statusInfo);
     statusInfo.size = new Size(150, normalLineHeight);
-    let errorText = widget.addText('   ' + CONFIGURATION.failIcon + ' UI-Service not reachable!\n          👉🏻 Server started?\n          👉🏻 UI-Service process started?\n          👉🏻 Server-URL ' + CONFIGURATION.hbServiceMachineBaseUrl + ' correct?\n          👉🏻 Are you in the same network?');
+    let errorText = widget.addText(CONFIGURATION.error_noConnectionText);
     errorText.size = new Size(410, 130);
     errorText.font = infoFont;
-    errorText.textColor = new Color(CONFIGURATION.fontColor);
+    setTextColor(errorText);
 
 
     widget.addSpacer(15);
-    let updatedAt = widget.addText('Updated: ' + timeFormatter.string(new Date()));
+    let updatedAt = widget.addText('t: ' + timeFormatter.string(new Date()));
     updatedAt.font = updatedAtFont;
-    updatedAt.textColor = new Color(CONFIGURATION.fontColor);
+    setTextColor(updatedAt);
     updatedAt.centerAlignText();
 
     return widget;
@@ -634,14 +694,14 @@ function addStatusIcon(widget, statusBool) {
     let name = '';
     let color;
     if (statusBool === undefined) {
-        name = 'questionmark.circle.fill';
-        color = Color.yellow();
+        name = CONFIGURATION.icon_statusUnknown;
+        color = new Color(CONFIGURATION.icon_colorUnknown);
     } else if (statusBool) {
-        name = 'checkmark.circle.fill';
-        color = Color.green();
+        name = CONFIGURATION.icon_statusGood;
+        color = new Color(CONFIGURATION.icon_colorGood);
     } else {
-        name = 'exclamationmark.triangle.fill';
-        color = Color.red();
+        name = CONFIGURATION.icon_statusBad;
+        color = new Color(CONFIGURATION.icon_colorBad);
     }
     let sf = SFSymbol.named(name);
     sf.applyFont(Font.heavySystemFont(50));
@@ -659,7 +719,7 @@ function addStatusInfo(lineWidget, statusBool, shownText) {
     itemStack.addSpacer(2);
     let text = itemStack.addText(shownText);
     text.font = Font.semiboldMonospacedSystemFont(10);
-    text.textColor = new Color(CONFIGURATION.fontColor);
+    setTextColor(text);
 }
 
 function handleNotifications(fm, hbRunning, hbUtd, pluginsUtd, nodeUtd) {
@@ -671,13 +731,13 @@ function handleNotifications(fm, hbRunning, hbUtd, pluginsUtd, nodeUtd) {
         state.hbRunning.status = hbRunning;
         state.hbRunning.lastNotified = now;
         shouldUpdateState = true;
-        scheduleNotification('Your Homebridge instance stopped 😱');
+        scheduleNotification(CONFIGURATION.notifyText_hbNotRunning);
     } else if (hbRunning && !state.hbRunning.status) {
         state.hbRunning.status = hbRunning;
         state.hbRunning.lastNotified = undefined;
         shouldUpdateState = true;
         if (!CONFIGURATION.disableStateBackToNormalNotifications) {
-            scheduleNotification('Your Homebridge instance is back online 😁');
+            scheduleNotification(CONFIGURATION.notifyText_hbNotRunning_backNormal);
         }
     }
 
@@ -685,13 +745,13 @@ function handleNotifications(fm, hbRunning, hbUtd, pluginsUtd, nodeUtd) {
         state.hbUtd.status = hbUtd;
         state.hbUtd.lastNotified = now;
         shouldUpdateState = true;
-        scheduleNotification('Update available for Homebridge 😎');
+        scheduleNotification(CONFIGURATION.notifyText_hbNotUtd);
     } else if (hbUtd && !state.hbUtd.status) {
         state.hbUtd.status = hbUtd;
         state.hbUtd.lastNotified = undefined;
         shouldUpdateState = true;
         if (!CONFIGURATION.disableStateBackToNormalNotifications) {
-            scheduleNotification('Homebridge is now up to date ✌️');
+            scheduleNotification(CONFIGURATION.notifyText_hbNotUtd_backNormal);
         }
     }
 
@@ -699,13 +759,13 @@ function handleNotifications(fm, hbRunning, hbUtd, pluginsUtd, nodeUtd) {
         state.pluginsUtd.status = pluginsUtd;
         state.pluginsUtd.lastNotified = now;
         shouldUpdateState = true;
-        scheduleNotification('Update available for one of your Plugins 😎');
+        scheduleNotification(CONFIGURATION.notifyText_pluginsNotUtd);
     } else if (pluginsUtd && !state.pluginsUtd.status) {
         state.pluginsUtd.status = pluginsUtd;
         state.pluginsUtd.lastNotified = undefined;
         shouldUpdateState = true;
         if (!CONFIGURATION.disableStateBackToNormalNotifications) {
-            scheduleNotification('Plugins are now up to date ✌️');
+            scheduleNotification(CONFIGURATION.notifyText_pluginsNotUtd_backNormal);
         }
     }
 
@@ -713,13 +773,13 @@ function handleNotifications(fm, hbRunning, hbUtd, pluginsUtd, nodeUtd) {
         state.nodeUtd.status = nodeUtd;
         state.nodeUtd.lastNotified = now;
         shouldUpdateState = true;
-        scheduleNotification('Update available for Node.js 😎');
+        scheduleNotification(CONFIGURATION.notifyText_nodejsNotUtd);
     } else if (nodeUtd && !state.nodeUtd.status) {
         state.nodeUtd.status = nodeUtd;
         state.nodeUtd.lastNotified = undefined;
         shouldUpdateState = true;
         if (!CONFIGURATION.disableStateBackToNormalNotifications) {
-            scheduleNotification('Node.js is now up to date ✌️');
+            scheduleNotification(CONFIGURATION.notifyText_nodejsNotUtd_backNormal);
         }
     }
 
@@ -743,10 +803,10 @@ function isTimeToNotifyAgain(dateToCheck) {
 
 function scheduleNotification(text) {
     let not = new Notification();
-    not.title = 'Homebridge Status changed:'
+    not.title = CONFIGURATION.notification_title;
     not.body = text;
-    not.addAction('Show me!', CONFIGURATION.hbServiceMachineBaseUrl, false);
-    not.sound = 'event';
+    not.addAction(CONFIGURATION.notification_expandedButtonText, CONFIGURATION.hbServiceMachineBaseUrl, false);
+    not.sound = CONFIGURATION.notification_ringTone;
     not.schedule();
 }
 
@@ -763,6 +823,7 @@ function getPersistedObject(fm, path, versionToCheckAgainst, initialObjectToPers
 
         if (persistedObject && (persistedObject.jsonVersion === undefined || persistedObject.jsonVersion < versionToCheckAgainst)) {
             // the version of the json file is outdated -> remove it and recreate it
+            log('Unfortunately, the configuration structure changed and your old config is not compatible anymore. It is now removed and a new one is created with the initial configuration. ')
             fm.remove(path);
         } else {
             return persistedObject;
