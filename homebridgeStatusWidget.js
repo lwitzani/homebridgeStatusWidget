@@ -55,10 +55,10 @@ class Configuration {
     // internationalization:
     status_hbRunning = 'Running';
     status_hbUtd = 'UTD';
-    status_pluginsUtd = 'Plugins UTD';
-    status_nodejsUtd = 'Node.js UTD';
+    status_pluginsUtd = 'Plugins UTD  '; // maybe add spaces at the end if you see '...' in the widget
+    status_nodejsUtd = 'Node.js UTD  ';
     // if you change the descriptions in the status columns, you must adapt the spacers between the columns, so that it looks good again :)
-    spacer_beforeFirstStatusColumn = 15;
+    spacer_beforeFirstStatusColumn = 8;
     spacer_betweenStatusColumns = 5;
     spacer_afterSecondColumn = 0;
 
@@ -108,7 +108,7 @@ const hbVersionUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/
 const nodeJsUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/nodejs';
 
 
-const maxLineWidth = 310; // if layout doesn't look good for you,
+const maxLineWidth = 300; // if layout doesn't look good for you,
 const normalLineHeight = 35; // try to tweak the (font-)sizes & remove/add spaces below
 const timeFormatter = new DateFormatter();
 timeFormatter.dateFormat = 'dd.MM.yyyy HH:mm:ss';
@@ -363,6 +363,7 @@ async function buildUsualGui(widget, token) {
     if (cpuData && ramData) {
         let mainColumns = widget.addStack();
         mainColumns.size = new Size(maxLineWidth, 77);
+        mainColumns.addSpacer(4)
 
         // FIRST COLUMN //////////////////////
         let firstColumn = mainColumns.addStack();
@@ -378,7 +379,7 @@ async function buildUsualGui(widget, token) {
         }
         // FIRST COLUMN END //////////////////////
 
-        mainColumns.addSpacer(15);
+        mainColumns.addSpacer(11);
 
         // SECOND COLUMN //////////////////////
         let secondColumn = mainColumns.addStack();
@@ -792,7 +793,6 @@ function addStatusIcon(widget, statusBool) {
 
 function addStatusInfo(lineWidget, statusBool, shownText) {
     let itemStack = lineWidget.addStack();
-    itemStack.centerAlignContent();
     addStatusIcon(itemStack, statusBool);
     itemStack.addSpacer(2);
     let text = itemStack.addText(shownText);

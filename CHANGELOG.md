@@ -1,5 +1,14 @@
 I try to list the changes i make in this changelog:
 
+
+#21.11.2020 12:00
+- major improvements for customization -> tried to put everything in the configuration (which is persisted) -> this unfortunately means your old config is not compatible anymore so it will be deleted and recreated (sorry)
+   - now basically almost everything is settable by you: shown all texts, textcolor, chartcolor, icons, iconcolor ... etc
+   - refactoring of status panel (top right area) -> now you can change the shown text and RE-ARRANGE the status columns so that they align perfectly again after the text changed (you must play around with the values here)
+- support for custom light/dark mode (set bgColorMode to CUSTOM and adaptToLightOrDarkMode to true and change the customBackgroundColorX_light and _dark as well as the fontColor_light and _dark as well as chartColor_light and _dark)
+- added special gui that is shown if you run this script with siri shortcut -> this gui shows a list of all (not ignored) software that has an update
+- added voice feedback when running the script via siri BUT this seems to be bugged atm (i wrote the developer of Scriptable about it. Maybe this doesn't work as i expect it should)
+
 #19.11.2020 22:26
 - hope you can figure out how to use the configuration :) :
 - added support for persisting and loading configurations -> now you can configure everything once as you like, create a configuration.json file, save it in e.g. iCloud and from there you can easily use this file via a widget parameter and don't have to think about reconfiguring everything after updating the script itself

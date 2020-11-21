@@ -1,4 +1,4 @@
-![](images/widget_purple_light.jpg)
+![](images/widget_display.jpg)
 
 # Homebridge Status Widget
 - Script for the iOS App Scriptable that shows a small summary of your Homebridge instance
@@ -25,7 +25,7 @@
      - set overwritePersistedConfig to false
      - set the widget up with a single parameter in the format 'USE_CONFIG:yourfilename.json' ![](images/use_config_via_parameter.jpeg)
   - as long as overwritePersistedConfig is false, any change to the config won't take any effect because the persisted one is used if usePersistedConfiguration is true
-- another updatable way:
+- another updatable way (but configuration is lost):
    - set the widget up with parameter in the format \<username>,,\<password>,,\<hbServiceMachineBaseUrl>
    - a valid real example: "admin,,mypassword123,,http://192.168.178.33:8581"
    - if you have authentication set to non in UI-X then just provide any char. Valid would be e.g. "x,,x,,http://192.168.178.33:8581"
@@ -70,21 +70,30 @@
   - a valid example of the variable would be const pluginsOrSwUpdatesToIgnore = ['homebridge-fritz', 'HOMEBRIDGE_UTD', 'NODEJS_UTD'];
   - if you specify something and run the script inside the Scriptable app, you will get a log output to let you know that you ignored something successfully
 
+# Special GUI when running the script via Siri shortcut
+- when you set up a shortcut that executes the script, a different GUI is shown
+- the Siri GUI shows a simple list of available updates so you can check now which of the software have an update
+- also i coded in to let siri speak an answer but this seems to be bugged and not working atm (wrote the Scriptable developer if this is a bug)
+- this is what it looks like:  ![](images/siri_shortcut.PNG)
 
 # Styling
+- all things shown below are saved in the configuration file and can be reused in the future after the script logic updates
+- all important texts can be changed to your own texts 
+  - if you change the top right texts you probably need to adapt the spacing (play around with the variables spacer_beforeFirstStatusColumn, etc and also with spaces in the text)
 - at the top of the script there is a variable bgColorMode that you can set to 'PURPLE_LIGHT', 'PURPLE_DARK', 'BLACK_LIGHT', BLACK_DARK', or 'CUSTOM'
 ![](images/widget_purple_light.jpg)
 ![](images/widget_purple_dark.jpg)
 ![](images/widget_black_light.jpg)
 ![](images/widget_black_dark.jpg)
-- in CUSTOM mode the values defined in customBackgroundColor1 and customBackgroundColor2 are used (you can choose!) 
+- in CUSTOM mode the values defined in customBackgroundColor1_light, customBackgroundColor2_light, customBackgroundColor1_dark and customBackgroundColor2_dark are used (you can choose!) 
 ![](images/widget_custom_blue.jpg)
 ![](images/widget_custom_blue_green_charts.jpg)
-- adaptToLightOrDarkMode toggles to react to light/dark mode automatically (only supports the purple and black modes)
-- fontColor sets all texts to your chosen color
-- chartColor controls which color the charts have
+- adaptToLightOrDarkMode toggles to react to light/dark mode automatically
+  - if you use adaptToLightOrDarkMode with mode CUSTOM then customBackgroundColor1_light and customBackgroundColor2_light together are used in the light version and of course customBackgroundColor1_dark and customBackgroundColor2_dark in the dark version
+- fontColor_light and fontColor_dark sets all texts to your chosen color (default is fontColor_light). Works together with adaptToLightOrDarkMode
+- chartColor_light and chartColor_dark controls which color the charts have (default is chartColor_light). Works together with adaptToLightOrDarkMode
 - you even can experiment with logoUrl and choose another logo to download from anywhere
-- you can also change the icons failIcon = ❌ and bulletPointIcon = 🔸 by providing any other emoji
+- you can change the SFSymbols used together with their color (the icons) and the emojis failIcon = ❌ and bulletPointIcon = 🔸 by providing any other emoji
 
 # Infos shown in the widget
 - if Homebridge is running
