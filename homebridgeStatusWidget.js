@@ -12,6 +12,8 @@ const CONFIGURATION_JSON_VERSION = 2; // never change this! If i need to change 
 // CONFIGURATION //////////////////////
 class Configuration {
     // you must at least configure the next 3 lines to make this script work or use credentials in parameter when setting up the widget (see the readme on github)
+    // if you don't use credentials, just enter the URL and it should work
+    // as soon as credentials + URL are correct, a configuration is saved and then used. to make changes after that set overwritePersistedConfig to true
     hbServiceMachineBaseUrl = '>enter the ip with the port here<'; // location of your system running the hb-service, e.g. http://192.168.178.33:8581
     userName = '>enter username here<'; // username of administrator of the hb-service
     password = '>enter password here<'; // password of administrator of the hb-service
@@ -55,6 +57,10 @@ class Configuration {
     status_hbUtd = 'UTD';
     status_pluginsUtd = 'Plugins UTD';
     status_nodejsUtd = 'Node.js UTD';
+    // if you change the descriptions in the status columns, you must adapt the spacers between the columns, so that it looks good again :)
+    spacer_beforeFirstStatusColumn = 15;
+    spacer_betweenStatusColumns = 5;
+    spacer_afterSecondColumn = 0;
 
     title_cpuLoad = 'CPU Load: ';
     title_cpuTemp = 'CPU Temp: ';
@@ -272,22 +278,23 @@ async function createWidget() {
     }
 
     // STATUS PANEL IN THE HEADER ///////////////////
+    titleStack.addSpacer(CONFIGURATION.spacer_beforeFirstStatusColumn);
     let statusInfo = titleStack.addStack();
-    statusInfo.layoutVertically();
+    let firstColumn = statusInfo.addStack();
+    firstColumn.layoutVertically();
+    addStatusInfo(firstColumn, hbStatus, CONFIGURATION.status_hbRunning);
+    firstColumn.addSpacer(5);
+    addStatusInfo(firstColumn, pluginsUpToDate, CONFIGURATION.status_pluginsUtd);
 
-    let firstLine = statusInfo.addStack();
-    firstLine.addSpacer(15);
-    addStatusInfo(firstLine, hbStatus, CONFIGURATION.status_hbRunning);
-    firstLine.addSpacer(30);
-    addStatusInfo(firstLine, hbUpToDate, CONFIGURATION.status_hbUtd);
-    statusInfo.addSpacer(5); // space between the lines
+    statusInfo.addSpacer(CONFIGURATION.spacer_betweenStatusColumns);
 
-    let secondLine = statusInfo.addStack();
-    secondLine.addSpacer(15);
-    addStatusInfo(secondLine, pluginsUpToDate, CONFIGURATION.status_pluginsUtd);
-    secondLine.addSpacer(9);
+    let secondColumn = statusInfo.addStack();
+    secondColumn.layoutVertically();
+    addStatusInfo(secondColumn, hbUpToDate, CONFIGURATION.status_hbUtd);
+    secondColumn.addSpacer(5);
+    addStatusInfo(secondColumn, nodeJsUpToDate, CONFIGURATION.status_nodejsUtd);
 
-    addStatusInfo(secondLine, nodeJsUpToDate, CONFIGURATION.status_nodejsUtd);
+    titleStack.addSpacer(CONFIGURATION.spacer_afterSecondColumn);
     // STATUS PANEL IN THE HEADER END ////////////////
 
     widget.addSpacer(10);
