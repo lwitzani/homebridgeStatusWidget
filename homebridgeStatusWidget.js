@@ -45,11 +45,11 @@ class Configuration {
 
     // icons:
     icon_statusGood = 'checkmark.circle.fill'; // can be any SFSymbol
-    icon_colorGood = '#'+ Color.green().hex; // must have form like '#FFFFFF'
+    icon_colorGood = '#' + Color.green().hex; // must have form like '#FFFFFF'
     icon_statusBad = 'exclamationmark.triangle.fill'; // can be any SFSymbol
-    icon_colorBad = '#'+ Color.red().hex;// must have form like '#FFFFFF'
+    icon_colorBad = '#' + Color.red().hex;// must have form like '#FFFFFF'
     icon_statusUnknown = 'questionmark.circle.fill'; // can be any SFSymbol
-    icon_colorUnknown = '#'+ Color.yellow().hex;// must have form like '#FFFFFF'
+    icon_colorUnknown = '#' + Color.yellow().hex;// must have form like '#FFFFFF'
 
     // internationalization:
     status_hbRunning = 'Running';
@@ -252,13 +252,12 @@ async function createWidget() {
 
     // fetch all the data necessary
     let hbStatus = await getHomebridgeStatus(token);
-    let hbUpToDate = await getHomebridgeUpToDate(token);
-    let pluginsUpToDate = await getPluginsUpToDate(token);
-    let nodeJsUpToDate = await getNodeJsUpToDate(token);
-    let cpuData = await fetchData(token, cpuUrl());
-    let ramData = await fetchData(token, ramUrl());
-    let usedRamText = await getUsedRamString(ramData);
-    let uptimesArray = await getUptimesArray(token);
+    let hbVersionInfos = await getHomebridgeVersionInfos(token);
+    let hbUpToDate = hbVersionInfos === undefined ? undefined : !hbVersionInfos.updateAvailable;
+    let pluginVersionInfos = await getPluginVersionInfos(token);
+    let pluginsUpToDate = pluginVersionInfos === undefined ? undefined : !pluginVersionInfos.updateAvailable;
+    let nodeJsVersionInfos = await getNodeJsVersionInfos(token);
+    let nodeJsUpToDate = nodeJsVersionInfos === undefined ? undefined : !nodeJsVersionInfos.updateAvailable;
 
     if (usePersistedConfiguration || overwritePersistedConfig) {
         // if here, the configuration seems valid -> save it for next time
@@ -286,7 +285,52 @@ async function createWidget() {
     // STATUS PANEL IN THE HEADER END ////////////////
 
     widget.addSpacer(10);
+    if (!config.runsWithSiri) {
+        await buildUsualGui(widget, token);
+    } else if (config.runsWithSiri) {
+        await buildSiriGui(widget, hbVersionInfos, pluginVersionInfos, nodeJsVersionInfos);
+    }
 
+    if (CONFIGURATION.notificationEnabled) {
+        handleNotifications(fm, hbStatus, hbUpToDate, pluginsUpToDate, nodeJsUpToDate);
+    }
+    return widget;
+}
+
+async function buildSiriGui(widget, hbVersionInfos, pluginVersionInfos, nodeJsVersionInfos) {
+    let mainColumns = widget.addStack();
+    mainColumns.size = new Size(maxLineWidth, 100);
+
+    let verticalStack = mainColumns.addStack();
+    verticalStack.layoutVertically();
+
+    addStyledText(verticalStack, 'Available Updates:', infoFont);
+    if (hbVersionInfos.updateAvailable) {
+        verticalStack.addSpacer(5);
+        addUpdatableElement(verticalStack, CONFIGURATION.bulletPointIcon + hbVersionInfos.name + ': ', hbVersionInfos.installedVersion, hbVersionInfos.latestVersion);
+    }
+    if (pluginVersionInfos.updateAvailable) {
+        for (plugin of pluginVersionInfos.plugins) {
+            if (CONFIGURATION.pluginsOrSwUpdatesToIgnore.includes(plugin.name)) {
+                continue;
+            }
+            if (plugin.updateAvailable) {
+                verticalStack.addSpacer(5);
+                addUpdatableElement(verticalStack, CONFIGURATION.bulletPointIcon + plugin.name + ': ', plugin.installedVersion, plugin.latestVersion);
+            }
+        }
+    }
+    if (nodeJsVersionInfos.updateAvailable) {
+        verticalStack.addSpacer(5);
+        addUpdatableElement(verticalStack, CONFIGURATION.bulletPointIcon + nodeJsVersionInfos.name + ': ', nodeJsVersionInfos.currentVersion, nodeJsVersionInfos.latestVersion);
+    }
+}
+
+async function buildUsualGui(widget, token) {
+    let cpuData = await fetchData(token, cpuUrl());
+    let ramData = await fetchData(token, ramUrl());
+    let usedRamText = await getUsedRamString(ramData);
+    let uptimesArray = await getUptimesArray(token);
     if (cpuData && ramData) {
         let mainColumns = widget.addStack();
         mainColumns.size = new Size(maxLineWidth, 77);
@@ -333,12 +377,23 @@ async function createWidget() {
         let updatedAt = addStyledText(widget, 't: ' + timeFormatter.string(new Date()), chartAxisFont);
         updatedAt.centerAlignText();
         // BOTTOM UPDATED TEXT END //////////////////
-
-        if (CONFIGURATION.notificationEnabled) {
-            handleNotifications(fm, hbStatus, hbUpToDate, pluginsUpToDate, nodeJsUpToDate);
-        }
-        return widget;
     }
+}
+
+function addUpdatableElement(stackToAdd, elementTitle, versionCurrent, versionLatest) {
+    let itemStack = stackToAdd.addStack();
+    itemStack.addSpacer(17);
+    addStyledText(itemStack, elementTitle, infoFont);
+
+    let vertPointsStack = itemStack.addStack();
+    vertPointsStack.layoutVertically();
+
+    let versionStack = vertPointsStack.addStack();
+    addStyledText(versionStack, versionCurrent, infoFont);
+    versionStack.addSpacer(3);
+    addIcon(versionStack, 'arrow.right.square.fill', Color.blue());
+    versionStack.addSpacer(3);
+    addStyledText(versionStack, versionLatest, infoFont);
 }
 
 function handleSettingOfBackgroundColor(widget) {
@@ -550,31 +605,32 @@ async function getHomebridgeStatus(token) {
     return statusData.status === 'up';
 }
 
-async function getHomebridgeUpToDate(token) {
+async function getHomebridgeVersionInfos(token) {
     if (CONFIGURATION.pluginsOrSwUpdatesToIgnore.includes('HOMEBRIDGE_UTD')) {
         log('You configured Homebridge to not be checked for updates. Widget will show that it\'s UTD!');
-        return true;
+        return {updateAvailable: false};
     }
     const hbVersionData = await fetchData(token, hbVersionUrl());
     if (hbVersionData === undefined) {
         return undefined;
     }
-    return !hbVersionData.updateAvailable;
+    return hbVersionData;
 }
 
-async function getNodeJsUpToDate(token) {
+async function getNodeJsVersionInfos(token) {
     if (CONFIGURATION.pluginsOrSwUpdatesToIgnore.includes('NODEJS_UTD')) {
         log('You configured Node.js to not be checked for updates. Widget will show that it\'s UTD!');
-        return true;
+        return {updateAvailable: false};
     }
     const nodeJsData = await fetchData(token, nodeJsUrl());
     if (nodeJsData === undefined) {
         return undefined;
     }
-    return !nodeJsData.updateAvailable;
+    nodeJsData.name = 'node.js';
+    return nodeJsData;
 }
 
-async function getPluginsUpToDate(token) {
+async function getPluginVersionInfos(token) {
     const pluginsData = await fetchData(token, pluginsUrl());
     if (pluginsData === undefined) {
         return undefined;
@@ -585,10 +641,10 @@ async function getPluginsUpToDate(token) {
             continue;
         }
         if (plugin.updateAvailable) {
-            return false;
+            return {plugins: pluginsData, updateAvailable: true};
         }
     }
-    return true;
+    return {plugins: pluginsData, updateAvailable: false};
 }
 
 async function getUsedRamString(ramData) {
@@ -703,13 +759,7 @@ function addStatusIcon(widget, statusBool) {
         name = CONFIGURATION.icon_statusBad;
         color = new Color(CONFIGURATION.icon_colorBad);
     }
-    let sf = SFSymbol.named(name);
-    sf.applyFont(Font.heavySystemFont(50));
-    let iconImage = sf.image;
-    let imageWidget = widget.addImage(iconImage);
-    imageWidget.resizable = true;
-    imageWidget.imageSize = new Size(13, 13);
-    imageWidget.tintColor = color;
+    addIcon(widget, name, color);
 }
 
 function addStatusInfo(lineWidget, statusBool, shownText) {
@@ -839,4 +889,14 @@ function getPersistedObject(fm, path, versionToCheckAgainst, initialObjectToPers
 function persistObject(fm, object, path) {
     let raw = JSON.stringify(object);
     fm.writeString(path, raw);
+}
+
+function addIcon(widget, name, color) {
+    let sf = SFSymbol.named(name);
+    sf.applyFont(Font.heavySystemFont(50));
+    let iconImage = sf.image;
+    let imageWidget = widget.addImage(iconImage);
+    imageWidget.resizable = true;
+    imageWidget.imageSize = new Size(13, 13);
+    imageWidget.tintColor = color;
 }
