@@ -49,7 +49,7 @@ class Configuration {
     icon_statusBad = 'exclamationmark.triangle.fill'; // can be any SFSymbol
     icon_colorBad = '#' + Color.red().hex;// must have form like '#FFFFFF'
     icon_statusUnknown = 'questionmark.circle.fill'; // can be any SFSymbol
-    icon_colorUnknown = '#' + Color.yellow().hex;// must have form like '#FFFFFF'
+    icon_colorUnknown = '#' + Color.yellow().hex; // must have form like '#FFFFFF'
 
     // internationalization:
     status_hbRunning = 'Running';
@@ -79,6 +79,11 @@ class Configuration {
     notifyText_hbNotUtd_backNormal = 'Homebridge is now up to date ✌️';
     notifyText_pluginsNotUtd_backNormal = 'Plugins are now up to date ✌️';
     notifyText_nodejsNotUtd_backNormal = 'Node.js is now up to date ✌️';
+
+    siriGui_title_update_available = 'Available Updates:';
+    siriGui_title_all_UTD = 'Everything is up to date!';
+    siriGui_icon_version = 'arrow.right.square.fill'; // can be any SFSymbol
+    siriGui_icon_version_color = '#' + Color.blue().hex; // must have form like '#FFFFFF'
 
     error_noConnectionText = '   ' + this.failIcon + ' UI-Service not reachable!\n          ' + this.bulletPointIcon + ' Server started?\n          ' + this.bulletPointIcon + ' UI-Service process started?\n          ' + this.bulletPointIcon + ' Server-URL ' + this.hbServiceMachineBaseUrl + ' correct?\n          ' + this.bulletPointIcon + ' Are you in the same network?';
 }
@@ -288,7 +293,7 @@ async function createWidget() {
     if (!config.runsWithSiri) {
         await buildUsualGui(widget, token);
     } else if (config.runsWithSiri) {
-        await buildSiriGui(widget, hbVersionInfos, pluginVersionInfos, nodeJsVersionInfos);
+        buildSiriGui(widget, hbVersionInfos, pluginVersionInfos, nodeJsVersionInfos);
     }
 
     if (CONFIGURATION.notificationEnabled) {
@@ -297,32 +302,36 @@ async function createWidget() {
     return widget;
 }
 
-async function buildSiriGui(widget, hbVersionInfos, pluginVersionInfos, nodeJsVersionInfos) {
+function buildSiriGui(widget, hbVersionInfos, pluginVersionInfos, nodeJsVersionInfos) {
     let mainColumns = widget.addStack();
     mainColumns.size = new Size(maxLineWidth, 100);
 
     let verticalStack = mainColumns.addStack();
     verticalStack.layoutVertically();
-
-    addStyledText(verticalStack, 'Available Updates:', infoFont);
-    if (hbVersionInfos.updateAvailable) {
-        verticalStack.addSpacer(5);
-        addUpdatableElement(verticalStack, CONFIGURATION.bulletPointIcon + hbVersionInfos.name + ': ', hbVersionInfos.installedVersion, hbVersionInfos.latestVersion);
-    }
-    if (pluginVersionInfos.updateAvailable) {
-        for (plugin of pluginVersionInfos.plugins) {
-            if (CONFIGURATION.pluginsOrSwUpdatesToIgnore.includes(plugin.name)) {
-                continue;
-            }
-            if (plugin.updateAvailable) {
-                verticalStack.addSpacer(5);
-                addUpdatableElement(verticalStack, CONFIGURATION.bulletPointIcon + plugin.name + ': ', plugin.installedVersion, plugin.latestVersion);
+    if (hbVersionInfos.updateAvailable || pluginVersionInfos.updateAvailable || nodeJsVersionInfos.updateAvailable) {
+        addStyledText(verticalStack, CONFIGURATION.siriGui_title_update_available, infoFont);
+        if (hbVersionInfos.updateAvailable) {
+            verticalStack.addSpacer(5);
+            addUpdatableElement(verticalStack, CONFIGURATION.bulletPointIcon + hbVersionInfos.name + ': ', hbVersionInfos.installedVersion, hbVersionInfos.latestVersion);
+        }
+        if (pluginVersionInfos.updateAvailable) {
+            for (plugin of pluginVersionInfos.plugins) {
+                if (CONFIGURATION.pluginsOrSwUpdatesToIgnore.includes(plugin.name)) {
+                    continue;
+                }
+                if (plugin.updateAvailable) {
+                    verticalStack.addSpacer(5);
+                    addUpdatableElement(verticalStack, CONFIGURATION.bulletPointIcon + plugin.name + ': ', plugin.installedVersion, plugin.latestVersion);
+                }
             }
         }
-    }
-    if (nodeJsVersionInfos.updateAvailable) {
-        verticalStack.addSpacer(5);
-        addUpdatableElement(verticalStack, CONFIGURATION.bulletPointIcon + nodeJsVersionInfos.name + ': ', nodeJsVersionInfos.currentVersion, nodeJsVersionInfos.latestVersion);
+        if (nodeJsVersionInfos.updateAvailable) {
+            verticalStack.addSpacer(5);
+            addUpdatableElement(verticalStack, CONFIGURATION.bulletPointIcon + nodeJsVersionInfos.name + ': ', nodeJsVersionInfos.currentVersion, nodeJsVersionInfos.latestVersion);
+        }
+    } else {
+        verticalStack.addSpacer(30);
+        addStyledText(verticalStack, CONFIGURATION.siriGui_title_all_UTD, infoFont);
     }
 }
 
@@ -376,7 +385,6 @@ async function buildUsualGui(widget, token) {
         // BOTTOM UPDATED TEXT //////////////////////
         let updatedAt = addStyledText(widget, 't: ' + timeFormatter.string(new Date()), chartAxisFont);
         updatedAt.centerAlignText();
-        // BOTTOM UPDATED TEXT END //////////////////
     }
 }
 
@@ -391,7 +399,7 @@ function addUpdatableElement(stackToAdd, elementTitle, versionCurrent, versionLa
     let versionStack = vertPointsStack.addStack();
     addStyledText(versionStack, versionCurrent, infoFont);
     versionStack.addSpacer(3);
-    addIcon(versionStack, 'arrow.right.square.fill', Color.blue());
+    addIcon(versionStack, CONFIGURATION.siriGui_icon_version, new Color(CONFIGURATION.siriGui_icon_version_color));
     versionStack.addSpacer(3);
     addStyledText(versionStack, versionLatest, infoFont);
 }
