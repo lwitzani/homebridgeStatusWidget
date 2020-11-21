@@ -37,8 +37,7 @@ class Configuration {
     bulletPointIcon = '🔸';
     decimalChar = ','; // if you like a dot as decimal separator make the comma to a dot here
     jsonVersion = CONFIGURATION_JSON_VERSION; // do not change this
-    enableSiriFeedback = false; // this does nothing atm, but maybe i use this in the future
-    defaultLocaleToUseForSiri = 'de'; // this does nothing atm, but maybe i use this in the future
+    enableSiriFeedback = true; // when running script via Siri, she should speak the text that is defined below BUT might be bugged atm, i wrote the dev about it
 
 // logo is downloaded only the first time! It is saved in iCloud and then loaded from there everytime afterwards
     logoUrl = 'https://github.com/homebridge/branding/blob/master/logos/homebridge-silhouette-round-white.png?raw=true';
@@ -84,6 +83,8 @@ class Configuration {
     siriGui_title_all_UTD = 'Everything is up to date!';
     siriGui_icon_version = 'arrow.right.square.fill'; // can be any SFSymbol
     siriGui_icon_version_color = '#' + Color.blue().hex; // must have form like '#FFFFFF'
+    siri_spokenAnswer_update_available = 'At least one update is available';
+    siri_spokenAnswer_all_UTD = 'Everything is up to date';
 
     error_noConnectionText = '   ' + this.failIcon + ' UI-Service not reachable!\n          ' + this.bulletPointIcon + ' Server started?\n          ' + this.bulletPointIcon + ' UI-Service process started?\n          ' + this.bulletPointIcon + ' Server-URL ' + this.hbServiceMachineBaseUrl + ' correct?\n          ' + this.bulletPointIcon + ' Are you in the same network?';
 }
@@ -309,6 +310,7 @@ function buildSiriGui(widget, hbVersionInfos, pluginVersionInfos, nodeJsVersionI
     let verticalStack = mainColumns.addStack();
     verticalStack.layoutVertically();
     if (hbVersionInfos.updateAvailable || pluginVersionInfos.updateAvailable || nodeJsVersionInfos.updateAvailable) {
+        speakUpdateStatus(true);
         addStyledText(verticalStack, CONFIGURATION.siriGui_title_update_available, infoFont);
         if (hbVersionInfos.updateAvailable) {
             verticalStack.addSpacer(5);
@@ -330,8 +332,19 @@ function buildSiriGui(widget, hbVersionInfos, pluginVersionInfos, nodeJsVersionI
             addUpdatableElement(verticalStack, CONFIGURATION.bulletPointIcon + nodeJsVersionInfos.name + ': ', nodeJsVersionInfos.currentVersion, nodeJsVersionInfos.latestVersion);
         }
     } else {
+        speakUpdateStatus(false);
         verticalStack.addSpacer(30);
         addStyledText(verticalStack, CONFIGURATION.siriGui_title_all_UTD, infoFont);
+    }
+}
+
+function speakUpdateStatus(updateAvailable) {
+    if (CONFIGURATION.enableSiriFeedback) {
+        if (updateAvailable) {
+            Speech.speak(CONFIGURATION.siri_spokenAnswer_update_available);
+        } else {
+            Speech.speak(CONFIGURATION.siri_spokenAnswer_all_UTD);
+        }
     }
 }
 
