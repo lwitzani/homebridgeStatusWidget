@@ -404,7 +404,7 @@ async function buildUsualGui(widget, token) {
         widget.addSpacer(10);
 
         // BOTTOM UPDATED TEXT //////////////////////
-        let updatedAt = addStyledText(widget, 't: ' + timeFormatter.string(new Date()), chartAxisFont);
+        let updatedAt = addStyledText(widget, 't: ' + timeFormatter.string(new Date()), updatedAtFont);
         updatedAt.centerAlignText();
     }
 }
