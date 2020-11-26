@@ -96,6 +96,17 @@ class Configuration {
 }
 
 // CONFIGURATION END //////////////////////
+
+// POTENTIAL CANDIDATES FOR BEING IN THE CONFIGURATION /////
+const dateFormat = 'dd.MM.yyyy HH:mm:ss'; // for US use 'MM/dd/yyyy HH:mm:ss';
+const HB_LOGO_FILE_NAME = Device.model() + 'hbLogo.png';
+const headerFontSize = 12;
+const informationFontSize = 10;
+const chartAxisFontSize = 7;
+const dateFontSize = 7;
+// POTENTIAL CANDIDATES FOR BEING IN THE CONFIGURATION END //
+
+
 let CONFIGURATION = new Configuration();
 const noAuthUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/auth/noauth';
 const authUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/auth/login';
@@ -108,14 +119,14 @@ const hbVersionUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/
 const nodeJsUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/nodejs';
 
 
+const timeFormatter = new DateFormatter();
+timeFormatter.dateFormat = dateFormat;
 const maxLineWidth = 300; // if layout doesn't look good for you,
 const normalLineHeight = 35; // try to tweak the (font-)sizes & remove/add spaces below
-const timeFormatter = new DateFormatter();
-timeFormatter.dateFormat = 'dd.MM.yyyy HH:mm:ss';
-const headerFont = Font.boldMonospacedSystemFont(12);
-const infoFont = Font.systemFont(10);
-const chartAxisFont = Font.systemFont(7);
-const updatedAtFont = Font.systemFont(7);
+const headerFont = Font.boldMonospacedSystemFont(headerFontSize);
+const infoFont = Font.systemFont(informationFontSize);
+const chartAxisFont = Font.systemFont(chartAxisFontSize);
+const updatedAtFont = Font.systemFont(dateFontSize);
 
 const purpleBgGradient_light = createLinearGradient('#421367', '#481367');
 const purpleBgGradient_dark = createLinearGradient('#250b3b', '#320d47');
@@ -126,7 +137,6 @@ const UNAVAILABLE = 'UNAVAILABLE';
 
 const NOTIFICATION_JSON_VERSION = 1; // never change this!
 const NOTIFICATION_JSON_FILE_NAME = 'notificationState.json'; // never change this!
-const HB_LOGO_FILE_NAME = 'hbLogo.png'; // never change this!
 
 const INITIAL_NOTIFICATION_STATE = {
     'jsonVersion': NOTIFICATION_JSON_VERSION,
@@ -689,7 +699,9 @@ async function getUptimesArray(token) {
 }
 
 function formatSeconds(value) {
-    if (value > 60 * 60 * 24) {
+    if (value > 60 * 60 * 24 * 10) {
+        return getAsRoundedString(value / 60 / 60 / 24, 0) + 'd'; // more than 10 days
+    } else if (value > 60 * 60 * 24) {
         return getAsRoundedString(value / 60 / 60 / 24, 1) + 'd';
     } else if (value > 60 * 60) {
         return getAsRoundedString(value / 60 / 60, 1) + 'h';
@@ -710,6 +722,10 @@ async function loadImage(imgUrl) {
 async function getHbLogo(fm) {
     let path = getFilePath(HB_LOGO_FILE_NAME, fm);
     if (fm.fileExists(path)) {
+        const fileDownloaded = await fm.isFileDownloaded(path);
+        if (!fileDownloaded) {
+            await fm.downloadFileFromiCloud(path);
+        }
         return fm.readImage(path);
     } else {
         // logo did not exist -> download it and save it for next time the widget runs

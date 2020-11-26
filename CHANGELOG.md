@@ -1,6 +1,10 @@
 I try to list the changes i make in this changelog:
 
 
+#26.11.2020 17:00
+- small fixes nothing special
+- your existing config file can be used with this update (configuration class did not change yet)
+
 #21.11.2020 12:00
 - major improvements for customization -> tried to put everything in the configuration (which is persisted) -> this unfortunately means your old config is not compatible anymore so it will be deleted and recreated (sorry)
    - now basically almost everything is settable by you: shown all texts, textcolor, chartcolor, icons, iconcolor ... etc
