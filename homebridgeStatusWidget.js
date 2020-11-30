@@ -40,6 +40,7 @@ class Configuration {
     decimalChar = ','; // if you like a dot as decimal separator make the comma to a dot here
     jsonVersion = CONFIGURATION_JSON_VERSION; // do not change this
     enableSiriFeedback = true; // when running script via Siri, she should speak the text that is defined below BUT might be bugged atm, i wrote the dev about it
+    homebridgeTitle = 'Homebridge'; // Title to be shown in widget
 
 // logo is downloaded only the first time! It is saved in iCloud and then loaded from there everytime afterwards
     logoUrl = 'https://github.com/homebridge/branding/blob/master/logos/homebridge-silhouette-round-white.png?raw=true';
@@ -262,7 +263,7 @@ async function createWidget() {
     const imgWidget = titleStack.addImage(logo);
     imgWidget.imageSize = new Size(40, 30);
 
-    let headerText = addStyledText(titleStack, ' Homebridge ', headerFont);
+    let headerText = addStyledText(titleStack, ' ' + CONFIGURATION.homebridgeTitle + ' ', headerFont);
     headerText.size = new Size(60, normalLineHeight);
     // LOGO AND HEADER END //////////////////////
 
