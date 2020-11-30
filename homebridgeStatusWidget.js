@@ -263,7 +263,7 @@ async function createWidget() {
     const imgWidget = titleStack.addImage(logo);
     imgWidget.imageSize = new Size(40, 30);
 
-    let headerText = addStyledText(titleStack, ' ' + CONFIGURATION.homebridgeTitle + ' ', headerFont);
+    let headerText = addStyledText(titleStack, CONFIGURATION.homebridgeTitle, headerFont);
     headerText.size = new Size(60, normalLineHeight);
     // LOGO AND HEADER END //////////////////////
 
