@@ -1,6 +1,9 @@
 I try to list the changes i make in this changelog:
 
 
+#1.12.2020 21:21
+- fix for issue when json was not downloaded from icloud yet (also for the json files now...)
+
 #26.11.2020 17:00
 - small fixes nothing special
 - your existing config file can be used with this update (configuration class did not change yet)

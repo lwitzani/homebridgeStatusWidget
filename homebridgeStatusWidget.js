@@ -1,4 +1,5 @@
 // Check the readme at https://github.com/lwitzani/homebridgeStatusWidget for setup instructions, troubleshoots and also for updates of course!
+// Code Version: 1.12.2020
 // *********
 // For power users:
 // I added a configuration mechanism so you don't need to reconfigure it every time you update the script!
@@ -98,12 +99,14 @@ class Configuration {
 // CONFIGURATION END //////////////////////
 
 // POTENTIAL CANDIDATES FOR BEING IN THE CONFIGURATION /////
+const widgetTitle = ' Homebridge ';
 const dateFormat = 'dd.MM.yyyy HH:mm:ss'; // for US use 'MM/dd/yyyy HH:mm:ss';
 const HB_LOGO_FILE_NAME = Device.model() + 'hbLogo.png';
 const headerFontSize = 12;
 const informationFontSize = 10;
 const chartAxisFontSize = 7;
 const dateFontSize = 7;
+const NOTIFICATION_JSON_FILE_NAME = 'notificationState.json'; // never change this!
 // POTENTIAL CANDIDATES FOR BEING IN THE CONFIGURATION END //
 
 
@@ -136,7 +139,6 @@ const blackBgGradient_dark = createLinearGradient('#111111', '#222222');
 const UNAVAILABLE = 'UNAVAILABLE';
 
 const NOTIFICATION_JSON_VERSION = 1; // never change this!
-const NOTIFICATION_JSON_FILE_NAME = 'notificationState.json'; // never change this!
 
 const INITIAL_NOTIFICATION_STATE = {
     'jsonVersion': NOTIFICATION_JSON_VERSION,
@@ -238,8 +240,8 @@ async function createWidget() {
     }
     let pathToConfig = getFilePath(configurationFileName, fm);
     if (usePersistedConfiguration && !overwritePersistedConfig) {
-        CONFIGURATION = getPersistedObject(fm, pathToConfig, CONFIGURATION_JSON_VERSION, CONFIGURATION, false);
-        log('Configuration ' + configurationFileName + ' has been loaded and is used!')
+        CONFIGURATION = await getPersistedObject(fm, pathToConfig, CONFIGURATION_JSON_VERSION, CONFIGURATION, false);
+        log('Configuration ' + configurationFileName + ' is used! Trying to authenticate...');
     }
 
     // authenticate against the hb-service
@@ -262,7 +264,7 @@ async function createWidget() {
     const imgWidget = titleStack.addImage(logo);
     imgWidget.imageSize = new Size(40, 30);
 
-    let headerText = addStyledText(titleStack, ' Homebridge ', headerFont);
+    let headerText = addStyledText(titleStack, widgetTitle, headerFont);
     headerText.size = new Size(60, normalLineHeight);
     // LOGO AND HEADER END //////////////////////
 
@@ -315,7 +317,7 @@ async function createWidget() {
     }
 
     if (CONFIGURATION.notificationEnabled) {
-        handleNotifications(fm, hbStatus, hbUpToDate, pluginsUpToDate, nodeJsUpToDate);
+        await handleNotifications(fm, hbStatus, hbUpToDate, pluginsUpToDate, nodeJsUpToDate);
     }
     return widget;
 }
@@ -816,9 +818,9 @@ function addStatusInfo(lineWidget, statusBool, shownText) {
     setTextColor(text);
 }
 
-function handleNotifications(fm, hbRunning, hbUtd, pluginsUtd, nodeUtd) {
+async function handleNotifications(fm, hbRunning, hbUtd, pluginsUtd, nodeUtd) {
     let path = getFilePath(NOTIFICATION_JSON_FILE_NAME, fm);
-    let state = getPersistedObject(fm, path, NOTIFICATION_JSON_VERSION, INITIAL_NOTIFICATION_STATE, true);
+    let state = await getPersistedObject(fm, path, NOTIFICATION_JSON_VERSION, INITIAL_NOTIFICATION_STATE, true);
     let now = new Date();
     let shouldUpdateState = false;
     if (shouldNotify(hbRunning, state.hbRunning.status, state.hbRunning.lastNotified)) {
@@ -904,8 +906,12 @@ function scheduleNotification(text) {
     not.schedule();
 }
 
-function getPersistedObject(fm, path, versionToCheckAgainst, initialObjectToPersist, createIfNotExisting) {
+async function getPersistedObject(fm, path, versionToCheckAgainst, initialObjectToPersist, createIfNotExisting) {
     if (fm.fileExists(path)) {
+        const fileDownloaded = await fm.isFileDownloaded(path);
+        if (!fileDownloaded) {
+            await fm.downloadFileFromiCloud(path);
+        }
         let raw, persistedObject;
         try {
             raw = fm.readString(path);
