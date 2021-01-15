@@ -937,7 +937,7 @@ async function getPersistedObject(fm, path, versionToCheckAgainst, initialObject
 }
 
 function persistObject(fm, object, path) {
-    let raw = JSON.stringify(object);
+    let raw = JSON.stringify(object, null, 2);
     fm.writeString(path, raw);
 }
 

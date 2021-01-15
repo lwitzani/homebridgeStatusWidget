@@ -1,5 +1,7 @@
 I try to list the changes i make in this changelog:
 
+#15.01.2021 17:35
+- just added pretty-printing for the json files (as requested)
 
 #1.12.2020 21:21
 - fix for issue when json was not downloaded from icloud yet (also for the json files now...)
