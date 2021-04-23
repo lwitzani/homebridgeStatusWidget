@@ -678,6 +678,9 @@ async function getPluginVersionInfos(token) {
     if (pluginsData === undefined) {
         return undefined;
     }
+    if (pluginsData.statusCode === 403) {
+        return undefined;
+    }
     for (plugin of pluginsData) {
         if (CONFIGURATION.pluginsOrSwUpdatesToIgnore.includes(plugin.name)) {
             log('You configured ' + plugin.name + ' to not be checked for updates. Widget will show that it\'s UTD!');
