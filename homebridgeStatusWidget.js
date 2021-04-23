@@ -7,6 +7,7 @@
 let configurationFileName = 'purple.json' // change this to an own name e.g. 'configBlack.json' . This name can then be given as a widget parameter in the form 'USE_CONFIG:yourfilename.json' so you don't loose your preferred configuration across script updates (but you will loose it if i have to change the configuration format)
 const usePersistedConfiguration = true; // false would mean to use the visible configuration below; true means the state saved in iCloud (or locally) will be used
 const overwritePersistedConfig = false; // if you like your configuration, run the script ONCE with this param to true, then it is saved and can be used via 'USE_CONFIG:yourfilename.json' in widget params
+const saveTokenToConfig = true; // Use the access token saved in the config if applicable (usually used with 2FA)
 // *********
 
 const CONFIGURATION_JSON_VERSION = 2; // never change this! If i need to change the structure of configuration class, i will increase this counter. Your created config files sadly won't be compatible afterwards.
@@ -18,6 +19,7 @@ class Configuration {
     hbServiceMachineBaseUrl = '>enter the ip with the port here<'; // location of your system running the hb-service, e.g. http://192.168.178.33:8581
     userName = '>enter username here<'; // username of administrator of the hb-service
     password = '>enter password here<'; // password of administrator of the hb-service
+    otp = '>enter otp code here<';
     notificationEnabled = true; // set to false to disable all notifications
 
     notificationIntervalInDays = 1; // minimum amount of days between the notification about the same topic; 0 means notification everytime the script is run (SPAM). 1 means you get 1 message per status category per day (maximum of 4 messages per day since there are 4 categories). Can also be something like 0.5 which means in a day you can get up to 8 messages
@@ -94,6 +96,8 @@ class Configuration {
     siri_spokenAnswer_all_UTD = 'Everything is up to date';
 
     error_noConnectionText = '   ' + this.failIcon + ' UI-Service not reachable!\n          ' + this.bulletPointIcon + ' Server started?\n          ' + this.bulletPointIcon + ' UI-Service process started?\n          ' + this.bulletPointIcon + ' Server-URL ' + this.hbServiceMachineBaseUrl + ' correct?\n          ' + this.bulletPointIcon + ' Are you in the same network?';
+
+    accessToken = '';
 }
 
 // CONFIGURATION END //////////////////////
@@ -113,6 +117,7 @@ const NOTIFICATION_JSON_FILE_NAME = 'notificationState.json'; // never change th
 let CONFIGURATION = new Configuration();
 const noAuthUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/auth/noauth';
 const authUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/auth/login';
+const checkAuthUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/auth/check';
 const cpuUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/cpu';
 const hbStatusUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/homebridge';
 const ramUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/ram';
@@ -584,7 +589,24 @@ async function getAuthToken() {
     if (CONFIGURATION.hbServiceMachineBaseUrl === '>enter the ip with the port here<') {
         throw ('Base URL to machine not entered! Edit variable called hbServiceMachineBaseUrl')
     }
-    let req = new Request(noAuthUrl());
+    let req = new Request(checkAuthUrl());
+    if (CONFIGURATION.accessToken != '') {
+        req.timeoutInterval = CONFIGURATION.requestTimeoutInterval;
+        let headers = {
+            'accept': '*\/*',
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + CONFIGURATION.accessToken
+        };
+        req.headers = headers;
+        let result;
+        try {
+            result = await req.loadJSON();
+            if (result.status === 'OK')
+                return CONFIGURATION.accessToken;
+        } catch (e) {}
+    }
+
+    req = new Request(noAuthUrl());
     req.timeoutInterval = CONFIGURATION.requestTimeoutInterval;
     const headers = {
         'accept': '*\/*',
@@ -601,6 +623,7 @@ async function getAuthToken() {
     }
     if (authData.access_token) {
         // no credentials needed
+        saveToken(authData.access_token);
         return authData.access_token;
     }
 
@@ -609,7 +632,7 @@ async function getAuthToken() {
     let body = {
         'username': CONFIGURATION.userName,
         'password': CONFIGURATION.password,
-        'otp': 'string'
+        'otp': CONFIGURATION.otp
     };
     req.body = JSON.stringify(body);
     req.method = 'POST';
@@ -619,7 +642,17 @@ async function getAuthToken() {
     } catch (e) {
         return UNAVAILABLE;
     }
+    saveToken(authData.access_token);
     return authData.access_token;
+}
+
+function saveToken(access_token) {
+    if (saveTokenToConfig) {
+        CONFIGURATION.accessToken = access_token;
+        let fm = CONFIGURATION.fileManagerMode === 'LOCAL' ? FileManager.local() : FileManager.iCloud();
+        let pathToConfig = getFilePath(configurationFileName, fm);
+        persistObject(fm, CONFIGURATION, pathToConfig);
+    }
 }
 
 async function fetchData(token, url) {
