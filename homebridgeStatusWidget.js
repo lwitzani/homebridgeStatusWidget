@@ -19,7 +19,7 @@ class Configuration {
     hbServiceMachineBaseUrl = '>enter the ip with the port here<'; // location of your system running the hb-service, e.g. http://192.168.178.33:8581
     userName = '>enter username here<'; // username of administrator of the hb-service
     password = '>enter password here<'; // password of administrator of the hb-service
-    otp = '>enter otp code here<';
+    otp = '>enter otp code here<'; // 2FA code of administrator of the hb-service
     notificationEnabled = true; // set to false to disable all notifications
 
     notificationIntervalInDays = 1; // minimum amount of days between the notification about the same topic; 0 means notification everytime the script is run (SPAM). 1 means you get 1 message per status category per day (maximum of 4 messages per day since there are 4 categories). Can also be something like 0.5 which means in a day you can get up to 8 messages
@@ -632,7 +632,7 @@ async function getAuthToken() {
     let body = {
         'username': CONFIGURATION.userName,
         'password': CONFIGURATION.password,
-        'otp': CONFIGURATION.otp
+        'otp': new Configuration().otp
     };
     req.body = JSON.stringify(body);
     req.method = 'POST';
