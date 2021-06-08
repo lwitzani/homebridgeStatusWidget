@@ -1,6 +1,7 @@
 ![](images/widget_display.jpg)
 
 # Homebridge Status Widget
+- Users need to install the [`Authy Client.js`](https://github.com/LoSunny/Scriptable-Authy-Client) if they want to use 2FA with this code
 - Script for the iOS App Scriptable that shows a small summary of your Homebridge instance
 - All infos shown are based and provided by the Homebridge Config UI X found at https://github.com/oznu/homebridge-config-ui-x
 - Thanks to the github user oznu for providing such a nice programm!
@@ -25,12 +26,12 @@
      - set overwritePersistedConfig to false
      - set the widget up with a single parameter in the format 'USE_CONFIG:yourfilename.json' ![](images/use_config_via_parameter.jpeg)
   - as long as overwritePersistedConfig is false, any change to the config won't take any effect because the persisted one is used if usePersistedConfiguration is true
-- another updatable way (but configuration is lost):
-   - set the widget up with parameter in the format \<username>,,\<password>,,\<hbServiceMachineBaseUrl>
-   - a valid real example: "admin,,mypassword123,,http://192.168.178.33:8581"
-   - if you have authentication set to non in UI-X then just provide any char. Valid would be e.g. "x,,x,,http://192.168.178.33:8581"
-   - maybe you need to set usePersistedConfiguration in the config to false to use this older way
-   - screenshot of an example when setting it up: ![](images/example_parameter_setup.jpeg)
+- ~~another updatable way (but configuration is lost):~~ You cannot use this method if you want to enable 2FA
+   - ~~set the widget up with parameter in the format \<username>,,\<password>,,\<hbServiceMachineBaseUrl>~~
+   - ~~a valid real example: "admin,,mypassword123,,http://192.168.178.33:8581"~~
+   - ~~if you have authentication set to non in UI-X then just provide any char. Valid would be e.g. "x,,x,,http://192.168.178.33:8581"~~
+   - ~~maybe you need to set usePersistedConfiguration in the config to false to use this older way~~
+   - ~~screenshot of an example when setting it up:~~ ![](images/example_parameter_setup.jpeg)
 
 - hard coded way in the script (not recommended): you need to configure 
    - the **URL** of the system running the Homebridge Config UI X (the hb-service), including the port e.g. http://192.168.178.33:8581
