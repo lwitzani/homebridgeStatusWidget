@@ -673,7 +673,7 @@ async function getNodeJsVersionInfos(token) {
 
 async function getPluginVersionInfos(token) {
     const pluginsData = await fetchData(token, pluginsUrl());
-    if (pluginsData === undefined) {
+    if (pluginsData === undefined || pluginsData.statusCode === 403) {
         return undefined;
     }
     for (plugin of pluginsData) {
