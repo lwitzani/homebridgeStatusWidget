@@ -7,6 +7,8 @@
 let configurationFileName = 'purple.json' // change this to an own name e.g. 'configBlack.json' . This name can then be given as a widget parameter in the form 'USE_CONFIG:yourfilename.json' so you don't loose your preferred configuration across script updates (but you will loose it if i have to change the configuration format)
 const usePersistedConfiguration = true; // false would mean to use the visible configuration below; true means the state saved in iCloud (or locally) will be used
 const overwritePersistedConfig = false; // if you like your configuration, run the script ONCE with this param to true, then it is saved and can be used via 'USE_CONFIG:yourfilename.json' in widget params
+// overwritePersistedConfig is useless if twoFactorAuthentication is true
+const twoFactorAuthentication = true; // See https://github.com/LoSunny/homebridgeStatusWidget for details
 // *********
 
 const CONFIGURATION_JSON_VERSION = 2; // never change this! If i need to change the structure of configuration class, i will increase this counter. Your created config files sadly won't be compatible afterwards.
@@ -42,14 +44,14 @@ class Configuration {
     jsonVersion = CONFIGURATION_JSON_VERSION; // do not change this
     enableSiriFeedback = true; // when running script via Siri, she should speak the text that is defined below BUT might be bugged atm, i wrote the dev about it
 
-// logo is downloaded only the first time! It is saved in iCloud and then loaded from there everytime afterwards
+    // logo is downloaded only the first time! It is saved in iCloud and then loaded from there everytime afterwards
     logoUrl = 'https://github.com/homebridge/branding/blob/master/logos/homebridge-silhouette-round-white.png?raw=true';
 
     // icons:
     icon_statusGood = 'checkmark.circle.fill'; // can be any SFSymbol
     icon_colorGood = '#' + Color.green().hex; // must have form like '#FFFFFF'
     icon_statusBad = 'exclamationmark.triangle.fill'; // can be any SFSymbol
-    icon_colorBad = '#' + Color.red().hex;// must have form like '#FFFFFF'
+    icon_colorBad = '#' + Color.red().hex; // must have form like '#FFFFFF'
     icon_statusUnknown = 'questionmark.circle.fill'; // can be any SFSymbol
     icon_colorUnknown = '#' + Color.yellow().hex; // must have form like '#FFFFFF'
 
@@ -94,6 +96,7 @@ class Configuration {
     siri_spokenAnswer_all_UTD = 'Everything is up to date';
 
     error_noConnectionText = '   ' + this.failIcon + ' UI-Service not reachable!\n          ' + this.bulletPointIcon + ' Server started?\n          ' + this.bulletPointIcon + ' UI-Service process started?\n          ' + this.bulletPointIcon + ' Server-URL ' + this.hbServiceMachineBaseUrl + ' correct?\n          ' + this.bulletPointIcon + ' Are you in the same network?';
+    access_token = "";
 }
 
 // CONFIGURATION END //////////////////////
@@ -113,6 +116,7 @@ const NOTIFICATION_JSON_FILE_NAME = 'notificationState.json'; // never change th
 let CONFIGURATION = new Configuration();
 const noAuthUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/auth/noauth';
 const authUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/auth/login';
+const checkAuthUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/auth/check';
 const cpuUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/cpu';
 const hbStatusUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/homebridge';
 const ramUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/ram';
@@ -142,10 +146,10 @@ const NOTIFICATION_JSON_VERSION = 1; // never change this!
 
 const INITIAL_NOTIFICATION_STATE = {
     'jsonVersion': NOTIFICATION_JSON_VERSION,
-    'hbRunning': {'status': true},
-    'hbUtd': {'status': true},
-    'pluginsUtd': {'status': true},
-    'nodeUtd': {'status': true}
+    'hbRunning': { 'status': true },
+    'hbUtd': { 'status': true },
+    'pluginsUtd': { 'status': true },
+    'nodeUtd': { 'status': true }
 };
 
 class LineChart {
@@ -219,14 +223,14 @@ async function createWidget() {
     let fm = CONFIGURATION.fileManagerMode === 'LOCAL' ? FileManager.local() : FileManager.iCloud();
 
     if (args.widgetParameter) {
-// you can either provide as parameter:
-//  - the config.json file name you want to load the credentials from (must be created before it can be used but highly recommended)
-//      valid example: 'USE_CONFIG:yourfilename.json' (the 'yourfilename' part can be changed by you)
-//      this single parameter must start with USE_CONFIG: and end with .json
-// - credentials + URL directly (all other changes to the script are lost when you update it e.g. via https://scriptdu.de )
-//      credentials must be separated by two commas like <username>,,<password>,,<hbServiceMachineBaseUrl>
-//      a valid real example: admin,,mypassword123,,http://192.168.178.33:8581
-//      If no password is needed for you to login just enter anything: xyz,,xyz,,http://192.168.178.33:8581
+        // you can either provide as parameter:
+        //  - the config.json file name you want to load the credentials from (must be created before it can be used but highly recommended)
+        //      valid example: 'USE_CONFIG:yourfilename.json' (the 'yourfilename' part can be changed by you)
+        //      this single parameter must start with USE_CONFIG: and end with .json
+        // - credentials + URL directly (all other changes to the script are lost when you update it e.g. via https://scriptdu.de )
+        //      credentials must be separated by two commas like <username>,,<password>,,<hbServiceMachineBaseUrl>
+        //      a valid real example: admin,,mypassword123,,http://192.168.178.33:8581
+        //      If no password is needed for you to login just enter anything: xyz,,xyz,,http://192.168.178.33:8581
         if (args.widgetParameter.length > 0) {
             let foundCredentialsInParameter = useCredentialsFromWidgetParameter(args.widgetParameter);
             let fileNameSuccessfullySet = false;
@@ -234,7 +238,10 @@ async function createWidget() {
                 fileNameSuccessfullySet = checkIfConfigFileParameterIsProvided(fm, args.widgetParameter);
             }
             if (!foundCredentialsInParameter && !fileNameSuccessfullySet) {
-                throw('Format of provided parameter not valid\n2 Valid examples: 1. USE_CONFIG:yourfilename.json\n2. admin,,mypassword123,,http://192.168.178.33:8581');
+                throw ('Format of provided parameter not valid\n2 Valid examples: 1. USE_CONFIG:yourfilename.json\n2. admin,,mypassword123,,http://192.168.178.33:8581');
+            }
+            if (twoFactorAuthentication && foundCredentialsInParameter) {
+                throw ('You cannot use this method if you want to enable 2FA');
             }
         }
     }
@@ -242,13 +249,17 @@ async function createWidget() {
     if (usePersistedConfiguration && !overwritePersistedConfig) {
         CONFIGURATION = await getPersistedObject(fm, pathToConfig, CONFIGURATION_JSON_VERSION, CONFIGURATION, false);
         log('Configuration ' + configurationFileName + ' is used! Trying to authenticate...');
+    } else if (!usePersistedConfiguration && twoFactorAuthentication) {
+        CONFIGURATION.access_token = (await getPersistedObject(fm, pathToConfig, CONFIGURATION_JSON_VERSION, CONFIGURATION, false)).access_token;
+        log('Loaded access_token from config');
     }
 
     // authenticate against the hb-service
     let token = await getAuthToken();
     if (token === undefined) {
-        throw('Credentials not valid');
+        throw ('Credentials not valid');
     }
+    CONFIGURATION.access_token = token;
     let widget = new ListWidget();
 
     handleSettingOfBackgroundColor(widget);
@@ -283,7 +294,7 @@ async function createWidget() {
     let nodeJsVersionInfos = await getNodeJsVersionInfos(token);
     let nodeJsUpToDate = nodeJsVersionInfos === undefined ? undefined : !nodeJsVersionInfos.updateAvailable;
 
-    if (usePersistedConfiguration || overwritePersistedConfig) {
+    if (usePersistedConfiguration || overwritePersistedConfig || twoFactorAuthentication) {
         // if here, the configuration seems valid -> save it for next time
         log('The valid configuration ' + configurationFileName + ' has been saved. Changes can only be applied if overwritePersistedConfig is set to true. Should be set to false after applying changes again!')
         persistObject(fm, CONFIGURATION, pathToConfig);
@@ -559,7 +570,7 @@ function checkIfConfigFileParameterIsProvided(fm, givenParameter) {
     if (givenParameter.trim().startsWith('USE_CONFIG:') && givenParameter.trim().endsWith('.json')) {
         configurationFileName = givenParameter.trim().split('USE_CONFIG:')[1];
         if (!fm.fileExists(getFilePath(configurationFileName, fm))) {
-            throw('Config file with provided name ' + configurationFileName + ' does not exist!\nCreate it first by running the script once providing the name in variable configurationFileName and maybe with variable overwritePersistedConfig set to true');
+            throw ('Config file with provided name ' + configurationFileName + ' does not exist!\nCreate it first by running the script once providing the name in variable configurationFileName and maybe with variable overwritePersistedConfig set to true');
         }
         return true;
     }
@@ -582,12 +593,31 @@ function useCredentialsFromWidgetParameter(givenParameter) {
 
 async function getAuthToken() {
     if (CONFIGURATION.hbServiceMachineBaseUrl === '>enter the ip with the port here<') {
-        throw('Base URL to machine not entered! Edit variable called hbServiceMachineBaseUrl')
+        throw ('Base URL to machine not entered! Edit variable called hbServiceMachineBaseUrl')
     }
-    let req = new Request(noAuthUrl());
+    let req = new Request(checkAuthUrl());
+    if (CONFIGURATION.access_token != null && CONFIGURATION.access_token != '') {
+        req.timeoutInterval = CONFIGURATION.requestTimeoutInterval;
+        let headers = {
+            'accept': '*\/*',
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + CONFIGURATION.access_token
+        };
+        req.headers = headers;
+        let result;
+        try {
+            result = await req.loadJSON();
+            if (result.status === 'OK') {
+                return CONFIGURATION.access_token;
+            }
+        } catch (e) {}
+    }
+
+    req = new Request(noAuthUrl());
     req.timeoutInterval = CONFIGURATION.requestTimeoutInterval;
     const headers = {
-        'accept': '*\/*', 'Content-Type': 'application/json'
+        'accept': '*\/*',
+        'Content-Type': 'application/json'
     };
     req.method = 'POST';
     req.headers = headers;
@@ -610,6 +640,8 @@ async function getAuthToken() {
         'password': CONFIGURATION.password,
         'otp': 'string'
     };
+    if (twoFactorAuthentication)
+        body.otp = await importModule('Authy Client').getToken("homebridge")
     req.body = JSON.stringify(body);
     req.method = 'POST';
     req.headers = headers;
@@ -625,7 +657,8 @@ async function fetchData(token, url) {
     let req = new Request(url);
     req.timeoutInterval = CONFIGURATION.requestTimeoutInterval;
     let headers = {
-        'accept': '*\/*', 'Content-Type': 'application/json',
+        'accept': '*\/*',
+        'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + token
     };
     req.headers = headers;
@@ -649,7 +682,7 @@ async function getHomebridgeStatus(token) {
 async function getHomebridgeVersionInfos(token) {
     if (CONFIGURATION.pluginsOrSwUpdatesToIgnore.includes('HOMEBRIDGE_UTD')) {
         log('You configured Homebridge to not be checked for updates. Widget will show that it\'s UTD!');
-        return {updateAvailable: false};
+        return { updateAvailable: false };
     }
     const hbVersionData = await fetchData(token, hbVersionUrl());
     if (hbVersionData === undefined) {
@@ -661,7 +694,7 @@ async function getHomebridgeVersionInfos(token) {
 async function getNodeJsVersionInfos(token) {
     if (CONFIGURATION.pluginsOrSwUpdatesToIgnore.includes('NODEJS_UTD')) {
         log('You configured Node.js to not be checked for updates. Widget will show that it\'s UTD!');
-        return {updateAvailable: false};
+        return { updateAvailable: false };
     }
     const nodeJsData = await fetchData(token, nodeJsUrl());
     if (nodeJsData === undefined) {
@@ -676,16 +709,19 @@ async function getPluginVersionInfos(token) {
     if (pluginsData === undefined || pluginsData.statusCode === 403) {
         return undefined;
     }
+    if (pluginsData.statusCode === 403) {
+        return undefined;
+    }
     for (plugin of pluginsData) {
         if (CONFIGURATION.pluginsOrSwUpdatesToIgnore.includes(plugin.name)) {
             log('You configured ' + plugin.name + ' to not be checked for updates. Widget will show that it\'s UTD!');
             continue;
         }
         if (plugin.updateAvailable) {
-            return {plugins: pluginsData, updateAvailable: true};
+            return { plugins: pluginsData, updateAvailable: true };
         }
     }
-    return {plugins: pluginsData, updateAvailable: false};
+    return { plugins: pluginsData, updateAvailable: false };
 }
 
 async function getUsedRamString(ramData) {
