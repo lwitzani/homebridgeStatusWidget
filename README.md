@@ -73,8 +73,14 @@
 # Special GUI when running the script via Siri shortcut
 - when you set up a shortcut that executes the script, a different GUI is shown
 - the Siri GUI shows a simple list of available updates so you can check now which of the software have an update
-- also i coded in to let siri speak an answer but this seems to be bugged and not working atm (wrote the Scriptable developer if this is a bug)
+- also i coded in to let siri speak an answer. This can be disabled by setting the according property in the configuration.
 - this is what it looks like:  ![](images/siri_shortcut.PNG)
+
+# Support for iOS 16 lock screen widgets
+- you can configure the widget to show on iOS 16's lock screen
+- there is nothing to do additionally, the configuration is just as before
+- there is only support for the widget that takes up 2 of the 4 slots
+- this is what it looks like:  ![](images/ios16LockscreenWidget.jpg)
 
 # Styling
 - all things shown below are saved in the configuration file and can be reused in the future after the script logic updates

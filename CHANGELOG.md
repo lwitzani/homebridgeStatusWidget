@@ -1,5 +1,9 @@
 I try to list the changes i make in this changelog:
 
+#16.11.2022 20:00
+- added support for iOS16 lockscreen widgets (they are much more smaller)
+- there are now more properties persisted in the CONFIGURATION. The old config is migrated.
+
 #15.01.2021 17:35
 - just added pretty-printing for the json files (as requested)
 

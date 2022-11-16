@@ -1,5 +1,8 @@
+// Variables used by Scriptable.
+// These must be at the very top of the file. Do not edit.
+// icon-color: blue; icon-glyph: magic;
 // Check the readme at https://github.com/lwitzani/homebridgeStatusWidget for setup instructions, troubleshoots and also for updates of course!
-// Code Version: 1.12.2020
+// Code Version: 16.11.2022
 // *********
 // For power users:
 // I added a configuration mechanism so you don't need to reconfigure it every time you update the script!
@@ -9,7 +12,7 @@ const usePersistedConfiguration = true; // false would mean to use the visible c
 const overwritePersistedConfig = false; // if you like your configuration, run the script ONCE with this param to true, then it is saved and can be used via 'USE_CONFIG:yourfilename.json' in widget params
 // *********
 
-const CONFIGURATION_JSON_VERSION = 2; // never change this! If i need to change the structure of configuration class, i will increase this counter. Your created config files sadly won't be compatible afterwards.
+const CONFIGURATION_JSON_VERSION = 3; // never change this! If i need to change the structure of configuration class, i will increase this counter. Your created config files sadly won't be compatible afterwards.
 // CONFIGURATION //////////////////////
 class Configuration {
     // you must at least configure the next 3 lines to make this script work or use credentials in parameter when setting up the widget (see the readme on github)
@@ -24,7 +27,7 @@ class Configuration {
     disableStateBackToNormalNotifications = true; // set to false, if you want to be notified e.g. when Homebridge is running again after it stopped
     fileManagerMode = 'ICLOUD'; // default is ICLOUD. If you don't use iCloud Drive use option LOCAL
     temperatureUnitConfig = 'CELSIUS'; // options are CELSIUS or FAHRENHEIT
-    requestTimeoutInterval = 2; // in seconds; If requests take longer, the script is stopped. Increase it if it doesn't work or you
+    requestTimeoutInterval = 3; // in seconds; If requests take longer, the script is stopped. Increase it if it doesn't work or you
     pluginsOrSwUpdatesToIgnore = []; // a string array; enter the exact npm-plugin-names e.g. 'homebridge-fritz' or additionally 'HOMEBRIDGE_UTD' or 'NODEJS_UTD' if you do not want to have them checked for their latest versions
     adaptToLightOrDarkMode = true; // if one of the purple or black options is chosen, the widget will adapt to dark/light mode if true
     bgColorMode = 'PURPLE_LIGHT'; // default is PURPLE_LIGHT. Other options: PURPLE_DARK, BLACK_LIGHT, BLACK_DARK, CUSTOM (custom colors will be used, see below)
@@ -42,7 +45,7 @@ class Configuration {
     jsonVersion = CONFIGURATION_JSON_VERSION; // do not change this
     enableSiriFeedback = true; // when running script via Siri, she should speak the text that is defined below BUT might be bugged atm, i wrote the dev about it
 
-// logo is downloaded only the first time! It is saved in iCloud and then loaded from there everytime afterwards
+    // logo is downloaded only the first time! It is saved in iCloud and then loaded from there everytime afterwards
     logoUrl = 'https://github.com/homebridge/branding/blob/master/logos/homebridge-silhouette-round-white.png?raw=true';
 
     // icons:
@@ -94,27 +97,25 @@ class Configuration {
     siri_spokenAnswer_all_UTD = 'Everything is up to date';
 
     error_noConnectionText = '   ' + this.failIcon + ' UI-Service not reachable!\n          ' + this.bulletPointIcon + ' Server started?\n          ' + this.bulletPointIcon + ' UI-Service process started?\n          ' + this.bulletPointIcon + ' Server-URL ' + this.hbServiceMachineBaseUrl + ' correct?\n          ' + this.bulletPointIcon + ' Are you in the same network?';
+    error_noConnectionLockScreenText = '  ' + this.failIcon + ' UI-Service not reachable!\n    ' + this.bulletPointIcon + ' Server started?\n    ' + this.bulletPointIcon + ' UI-Service process started?\n    ' + this.bulletPointIcon + ' ' + this.hbServiceMachineBaseUrl + ' correct?\n    ' + this.bulletPointIcon + ' Are you in the same network?';
+
+    widgetTitle = ' Homebridge ';
+    dateFormat = 'dd.MM.yyyy HH:mm:ss'; // for US use 'MM/dd/yyyy HH:mm:ss';
+    hbLogoFileName = Device.model() + 'hbLogo.png';
+    headerFontSize = 12;
+    informationFontSize = 10;
+    chartAxisFontSize = 7;
+    dateFontSize = 7;
+    notificationJsonFileName = 'notificationState.json'; // multiple scripts for different homebridge instances should point to a different notificationJsonFileName
 }
 
 // CONFIGURATION END //////////////////////
-
-// POTENTIAL CANDIDATES FOR BEING IN THE CONFIGURATION /////
-const widgetTitle = ' Homebridge ';
-const dateFormat = 'dd.MM.yyyy HH:mm:ss'; // for US use 'MM/dd/yyyy HH:mm:ss';
-const HB_LOGO_FILE_NAME = Device.model() + 'hbLogo.png';
-const headerFontSize = 12;
-const informationFontSize = 10;
-const chartAxisFontSize = 7;
-const dateFontSize = 7;
-const NOTIFICATION_JSON_FILE_NAME = 'notificationState.json'; // never change this!
-// POTENTIAL CANDIDATES FOR BEING IN THE CONFIGURATION END //
-
 
 let CONFIGURATION = new Configuration();
 const noAuthUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/auth/noauth';
 const authUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/auth/login';
 const cpuUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/cpu';
-const hbStatusUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/homebridge';
+const overallStatusUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/homebridge';
 const ramUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/ram';
 const uptimeUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/uptime';
 const pluginsUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/plugins';
@@ -123,13 +124,13 @@ const nodeJsUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/nod
 
 
 const timeFormatter = new DateFormatter();
-timeFormatter.dateFormat = dateFormat;
 const maxLineWidth = 300; // if layout doesn't look good for you,
 const normalLineHeight = 35; // try to tweak the (font-)sizes & remove/add spaces below
-const headerFont = Font.boldMonospacedSystemFont(headerFontSize);
-const infoFont = Font.systemFont(informationFontSize);
-const chartAxisFont = Font.systemFont(chartAxisFontSize);
-const updatedAtFont = Font.systemFont(dateFontSize);
+let headerFont, infoFont, chartAxisFont, updatedAtFont, token, fileManager;
+
+let infoPanelFont = Font.semiboldMonospacedSystemFont(10);
+let iconSize = 13;
+let verticalSpacerInfoPanel = 5;
 
 const purpleBgGradient_light = createLinearGradient('#421367', '#481367');
 const purpleBgGradient_dark = createLinearGradient('#250b3b', '#320d47');
@@ -202,21 +203,48 @@ class LineChart {
     }
 }
 
-// WIDGET INIT //////////////////////
-let widget = await createWidget();
-if (!config.runsInWidget) {
-    await widget.presentMedium();
+class HomeBridgeStatus {
+    overallStatus;
+    hbVersionInfos;
+    hbUpToDate;
+    pluginVersionInfos;
+    pluginsUpToDate;
+    nodeJsVersionInfos;
+    nodeJsUpToDate;
+
+    constructor() {
+    }
+
+    async initialize() {
+        this.overallStatus = await getOverallStatus();
+        this.hbVersionInfos = await getHomebridgeVersionInfos();
+        this.hbUpToDate = this.hbVersionInfos === undefined ? undefined : !this.hbVersionInfos.updateAvailable;
+        this.pluginVersionInfos = await getPluginVersionInfos();
+        this.pluginsUpToDate = this.pluginVersionInfos === undefined ? undefined : !this.pluginVersionInfos.updateAvailable;
+        this.nodeJsVersionInfos = await getNodeJsVersionInfos();
+        this.nodeJsUpToDate = this.nodeJsVersionInfos === undefined ? undefined : !this.nodeJsVersionInfos.updateAvailable;
+        return this;
+    }
 }
 
-Script.setWidget(widget);
-Script.complete();
+// WIDGET INIT //////////////////////
+await initializeFileManager_Configuration_TimeFormatter_Fonts_AndToken();
+if (token === UNAVAILABLE) {
+    await showNotAvailableWidget();
+    // script ends after the next line
+    return;
+}
+const homeBridgeStatus = await new HomeBridgeStatus().initialize();
+await handleConfigPersisting();
+await handleNotifications(homeBridgeStatus.overallStatus, homeBridgeStatus.hbUpToDate, homeBridgeStatus.pluginsUpToDate, homeBridgeStatus.nodeJsUpToDate);
+await createAndShowWidget(homeBridgeStatus);
+return;
 
 // WIDGET INIT END //////////////////
 
-
-async function createWidget() {
+async function initializeFileManager_Configuration_TimeFormatter_Fonts_AndToken() {
     // fileManagerMode must be LOCAL if you do not use iCloud drive
-    let fm = CONFIGURATION.fileManagerMode === 'LOCAL' ? FileManager.local() : FileManager.iCloud();
+    fileManager = CONFIGURATION.fileManagerMode === 'LOCAL' ? FileManager.local() : FileManager.iCloud();
 
     if (args.widgetParameter) {
 // you can either provide as parameter:
@@ -231,112 +259,150 @@ async function createWidget() {
             let foundCredentialsInParameter = useCredentialsFromWidgetParameter(args.widgetParameter);
             let fileNameSuccessfullySet = false;
             if (!foundCredentialsInParameter) {
-                fileNameSuccessfullySet = checkIfConfigFileParameterIsProvided(fm, args.widgetParameter);
+                fileNameSuccessfullySet = checkIfConfigFileParameterIsProvided(args.widgetParameter);
             }
             if (!foundCredentialsInParameter && !fileNameSuccessfullySet) {
                 throw('Format of provided parameter not valid\n2 Valid examples: 1. USE_CONFIG:yourfilename.json\n2. admin,,mypassword123,,http://192.168.178.33:8581');
             }
         }
     }
-    let pathToConfig = getFilePath(configurationFileName, fm);
     if (usePersistedConfiguration && !overwritePersistedConfig) {
-        CONFIGURATION = await getPersistedObject(fm, pathToConfig, CONFIGURATION_JSON_VERSION, CONFIGURATION, false);
+        CONFIGURATION = await getPersistedObject(getFilePath(configurationFileName), CONFIGURATION_JSON_VERSION, CONFIGURATION, false);
         log('Configuration ' + configurationFileName + ' is used! Trying to authenticate...');
     }
+    timeFormatter.dateFormat = CONFIGURATION.dateFormat;
+    initializeFonts();
+    await initializeToken();
+}
 
-    // authenticate against the hb-service
-    let token = await getAuthToken();
-    if (token === undefined) {
-        throw('Credentials not valid');
+async function createAndShowWidget(homeBridgeStatus) {
+    if (config.runsInAccessoryWidget) {
+        await createAndShowLockScreenWidget(homeBridgeStatus);
+    } else {
+        let widget = new ListWidget();
+        handleSettingOfBackgroundColor(widget);
+        if (!config.runsWithSiri) {
+            await buildUsualGui(widget, homeBridgeStatus);
+        } else if (config.runsWithSiri) {
+            await buildSiriGui(widget, homeBridgeStatus);
+        }
+        finalizeAndShowWidget(widget);
     }
+}
+
+async function createAndShowLockScreenWidget(homeBridgeStatus) {
     let widget = new ListWidget();
-
     handleSettingOfBackgroundColor(widget);
+    overwriteSizesForLockScreen();
+    await buildLockScreenWidgetHeader(widget);
+    await buildLockScreenWidgetBody(widget, homeBridgeStatus);
+    await widget.presentSmall();
+    Script.setWidget(widget);
+    Script.complete();
+}
 
-    if (token !== UNAVAILABLE) {
-        widget.addSpacer(10);
-    }
-
-    // LOGO AND HEADER //////////////////////
-    let titleStack = widget.addStack();
-    titleStack.size = new Size(maxLineWidth, normalLineHeight);
-    const logo = await getHbLogo(fm);
-    const imgWidget = titleStack.addImage(logo);
-    imgWidget.imageSize = new Size(40, 30);
-
-    let headerText = addStyledText(titleStack, widgetTitle, headerFont);
-    headerText.size = new Size(60, normalLineHeight);
-    // LOGO AND HEADER END //////////////////////
-
-
-    if (token === UNAVAILABLE) {
-        // script ends after the next line
-        return addNotAvailableInfos(widget, titleStack);
-    }
-
-    // fetch all the data necessary
-    let hbStatus = await getHomebridgeStatus(token);
-    let hbVersionInfos = await getHomebridgeVersionInfos(token);
-    let hbUpToDate = hbVersionInfos === undefined ? undefined : !hbVersionInfos.updateAvailable;
-    let pluginVersionInfos = await getPluginVersionInfos(token);
-    let pluginsUpToDate = pluginVersionInfos === undefined ? undefined : !pluginVersionInfos.updateAvailable;
-    let nodeJsVersionInfos = await getNodeJsVersionInfos(token);
-    let nodeJsUpToDate = nodeJsVersionInfos === undefined ? undefined : !nodeJsVersionInfos.updateAvailable;
-
+async function handleConfigPersisting() {
     if (usePersistedConfiguration || overwritePersistedConfig) {
         // if here, the configuration seems valid -> save it for next time
         log('The valid configuration ' + configurationFileName + ' has been saved. Changes can only be applied if overwritePersistedConfig is set to true. Should be set to false after applying changes again!')
-        persistObject(fm, CONFIGURATION, pathToConfig);
+        persistObject(CONFIGURATION, getFilePath(configurationFileName));
     }
+}
 
-    // STATUS PANEL IN THE HEADER ///////////////////
+function buildStatusPanelInHeader(titleStack, homeBridgeStatus) {
     titleStack.addSpacer(CONFIGURATION.spacer_beforeFirstStatusColumn);
     let statusInfo = titleStack.addStack();
     let firstColumn = statusInfo.addStack();
     firstColumn.layoutVertically();
-    addStatusInfo(firstColumn, hbStatus, CONFIGURATION.status_hbRunning);
-    firstColumn.addSpacer(5);
-    addStatusInfo(firstColumn, pluginsUpToDate, CONFIGURATION.status_pluginsUtd);
+    addStatusInfo(firstColumn, homeBridgeStatus.overallStatus, CONFIGURATION.status_hbRunning);
+    firstColumn.addSpacer(verticalSpacerInfoPanel);
+    addStatusInfo(firstColumn, homeBridgeStatus.pluginsUpToDate, CONFIGURATION.status_pluginsUtd);
 
     statusInfo.addSpacer(CONFIGURATION.spacer_betweenStatusColumns);
 
     let secondColumn = statusInfo.addStack();
     secondColumn.layoutVertically();
-    addStatusInfo(secondColumn, hbUpToDate, CONFIGURATION.status_hbUtd);
-    secondColumn.addSpacer(5);
-    addStatusInfo(secondColumn, nodeJsUpToDate, CONFIGURATION.status_nodejsUtd);
+    addStatusInfo(secondColumn, homeBridgeStatus.hbUpToDate, CONFIGURATION.status_hbUtd);
+    secondColumn.addSpacer(verticalSpacerInfoPanel);
+    addStatusInfo(secondColumn, homeBridgeStatus.nodeJsUpToDate, CONFIGURATION.status_nodejsUtd);
 
     titleStack.addSpacer(CONFIGURATION.spacer_afterSecondColumn);
-    // STATUS PANEL IN THE HEADER END ////////////////
-
-    widget.addSpacer(10);
-    if (!config.runsWithSiri) {
-        await buildUsualGui(widget, token);
-    } else if (config.runsWithSiri) {
-        buildSiriGui(widget, hbVersionInfos, pluginVersionInfos, nodeJsVersionInfos);
-    }
-
-    if (CONFIGURATION.notificationEnabled) {
-        await handleNotifications(fm, hbStatus, hbUpToDate, pluginsUpToDate, nodeJsUpToDate);
-    }
-    return widget;
 }
 
-function buildSiriGui(widget, hbVersionInfos, pluginVersionInfos, nodeJsVersionInfos) {
+async function showNotAvailableWidget() {
+    if (!config.runsInAccessoryWidget) {
+        let widget = new ListWidget();
+        handleSettingOfBackgroundColor(widget);
+        let mainStack = widget.addStack();
+        await initializeLogoAndHeader(mainStack);
+        addNotAvailableInfos(widget, mainStack);
+        finalizeAndShowWidget(widget);
+    } else {
+        overwriteSizesForLockScreen();
+        let widget = new ListWidget();
+        handleSettingOfBackgroundColor(widget);
+        await buildLockScreenWidgetHeader(widget);
+        widget.addSpacer(2);
+        addStyledText(widget, CONFIGURATION.error_noConnectionLockScreenText, updatedAtFont);
+        await widget.presentSmall();
+        Script.setWidget(widget);
+        Script.complete();
+    }
+}
+
+async function finalizeAndShowWidget(widget) {
+    if (!config.runsInWidget) {
+        await widget.presentMedium();
+    }
+    Script.setWidget(widget);
+    Script.complete();
+}
+
+async function initializeToken() {
+    // authenticate against the hb-service
+    token = await getAuthToken();
+    if (token === undefined) {
+        throw('Credentials not valid');
+    }
+}
+
+async function initializeLogoAndHeader(titleStack) {
+    titleStack.size = new Size(maxLineWidth, normalLineHeight);
+    const logo = await getHbLogo();
+    const imgWidget = titleStack.addImage(logo);
+    imgWidget.imageSize = new Size(40, 30);
+
+    let headerText = addStyledText(titleStack, CONFIGURATION.widgetTitle, headerFont);
+    headerText.size = new Size(60, normalLineHeight);
+}
+
+function initializeFonts() {
+    headerFont = Font.boldMonospacedSystemFont(CONFIGURATION.headerFontSize);
+    infoFont = Font.systemFont(CONFIGURATION.informationFontSize);
+    chartAxisFont = Font.systemFont(CONFIGURATION.chartAxisFontSize);
+    updatedAtFont = Font.systemFont(CONFIGURATION.dateFontSize);
+}
+
+async function buildSiriGui(widget, homeBridgeStatus) {
+    widget.addSpacer(10);
+    let titleStack = widget.addStack();
+    await initializeLogoAndHeader(titleStack);
+    buildStatusPanelInHeader(titleStack, homeBridgeStatus);
+    widget.addSpacer(10);
     let mainColumns = widget.addStack();
     mainColumns.size = new Size(maxLineWidth, 100);
 
     let verticalStack = mainColumns.addStack();
     verticalStack.layoutVertically();
-    if (hbVersionInfos.updateAvailable || pluginVersionInfos.updateAvailable || nodeJsVersionInfos.updateAvailable) {
+    if (homeBridgeStatus.hbVersionInfos.updateAvailable || homeBridgeStatus.pluginVersionInfos.updateAvailable || homeBridgeStatus.nodeJsVersionInfos.updateAvailable) {
         speakUpdateStatus(true);
         addStyledText(verticalStack, CONFIGURATION.siriGui_title_update_available, infoFont);
-        if (hbVersionInfos.updateAvailable) {
+        if (homeBridgeStatus.hbVersionInfos.updateAvailable) {
             verticalStack.addSpacer(5);
-            addUpdatableElement(verticalStack, CONFIGURATION.bulletPointIcon + hbVersionInfos.name + ': ', hbVersionInfos.installedVersion, hbVersionInfos.latestVersion);
+            addUpdatableElement(verticalStack, CONFIGURATION.bulletPointIcon + homeBridgeStatus.hbVersionInfos.name + ': ', homeBridgeStatus.hbVersionInfos.installedVersion, homeBridgeStatus.hbVersionInfos.latestVersion);
         }
-        if (pluginVersionInfos.updateAvailable) {
-            for (plugin of pluginVersionInfos.plugins) {
+        if (homeBridgeStatus.pluginVersionInfos.updateAvailable) {
+            for (plugin of homeBridgeStatus.pluginVersionInfos.plugins) {
                 if (CONFIGURATION.pluginsOrSwUpdatesToIgnore.includes(plugin.name)) {
                     continue;
                 }
@@ -346,9 +412,9 @@ function buildSiriGui(widget, hbVersionInfos, pluginVersionInfos, nodeJsVersionI
                 }
             }
         }
-        if (nodeJsVersionInfos.updateAvailable) {
+        if (homeBridgeStatus.nodeJsVersionInfos.updateAvailable) {
             verticalStack.addSpacer(5);
-            addUpdatableElement(verticalStack, CONFIGURATION.bulletPointIcon + nodeJsVersionInfos.name + ': ', nodeJsVersionInfos.currentVersion, nodeJsVersionInfos.latestVersion);
+            addUpdatableElement(verticalStack, CONFIGURATION.bulletPointIcon + homeBridgeStatus.nodeJsVersionInfos.name + ': ', homeBridgeStatus.nodeJsVersionInfos.currentVersion, homeBridgeStatus.nodeJsVersionInfos.latestVersion);
         }
     } else {
         speakUpdateStatus(false);
@@ -367,40 +433,44 @@ function speakUpdateStatus(updateAvailable) {
     }
 }
 
-async function buildUsualGui(widget, token) {
-    let cpuData = await fetchData(token, cpuUrl());
-    let ramData = await fetchData(token, ramUrl());
-    let usedRamText = await getUsedRamString(ramData);
-    let uptimesArray = await getUptimesArray(token);
+async function buildUsualGui(widget, homeBridgeStatus) {
+    widget.addSpacer(10);
+    let titleStack = widget.addStack();
+    await initializeLogoAndHeader(titleStack);
+    buildStatusPanelInHeader(titleStack, homeBridgeStatus);
+    widget.addSpacer(10);
+    let cpuData = await fetchData(cpuUrl());
+    let ramData = await fetchData(ramUrl());
+    let usedRamText = getUsedRamString(ramData);
+    let uptimesArray = await getUptimesArray();
     if (cpuData && ramData) {
         let mainColumns = widget.addStack();
         mainColumns.size = new Size(maxLineWidth, 77);
         mainColumns.addSpacer(4)
 
-        // FIRST COLUMN //////////////////////
-        let firstColumn = mainColumns.addStack();
-        firstColumn.layoutVertically();
-        addTitleAboveChartToWidget(firstColumn, CONFIGURATION.title_cpuLoad + getAsRoundedString(cpuData.currentLoad, 1) + '%');
-        addChartToWidget(firstColumn, cpuData.cpuLoadHistory);
+        let cpuColumn = mainColumns.addStack();
+        cpuColumn.layoutVertically();
+        addStyledText(cpuColumn, CONFIGURATION.title_cpuLoad + getAsRoundedString(cpuData.currentLoad, 1) + '%', infoFont);
+        addChartToWidget(cpuColumn, cpuData.cpuLoadHistory);
+        cpuColumn.addSpacer(7);
 
         let temperatureString = getTemperatureString(cpuData?.cpuTemperature.main);
-        if (temperatureString !== 'unknown') {
-            let cpuTempText = addStyledText(firstColumn, CONFIGURATION.title_cpuTemp + temperatureString, infoFont);
+        if (temperatureString) {
+            let cpuTempText = addStyledText(cpuColumn, CONFIGURATION.title_cpuTemp + temperatureString, infoFont);
             cpuTempText.size = new Size(150, 30);
             setTextColor(cpuTempText);
         }
-        // FIRST COLUMN END //////////////////////
 
         mainColumns.addSpacer(11);
 
-        // SECOND COLUMN //////////////////////
-        let secondColumn = mainColumns.addStack();
-        secondColumn.layoutVertically();
-        addTitleAboveChartToWidget(secondColumn, CONFIGURATION.title_ramUsage + usedRamText + '%');
-        addChartToWidget(secondColumn, ramData.memoryUsageHistory);
+        let ramColumn = mainColumns.addStack();
+        ramColumn.layoutVertically();
+        addStyledText(ramColumn, CONFIGURATION.title_ramUsage + usedRamText + '%', infoFont);
+        addChartToWidget(ramColumn, ramData.memoryUsageHistory);
+        ramColumn.addSpacer(7);
 
         if (uptimesArray) {
-            let uptimesStack = secondColumn.addStack();
+            let uptimesStack = ramColumn.addStack();
 
             let upStack = uptimesStack.addStack();
             addStyledText(upStack, CONFIGURATION.title_uptimes, infoFont);
@@ -411,7 +481,6 @@ async function buildUsualGui(widget, token) {
             addStyledText(vertPointsStack, CONFIGURATION.bulletPointIcon + CONFIGURATION.title_systemGuiName + uptimesArray[0], infoFont);
             addStyledText(vertPointsStack, CONFIGURATION.bulletPointIcon + CONFIGURATION.title_uiService + uptimesArray[1], infoFont);
         }
-        // SECOND COLUMN END//////////////////////
 
         widget.addSpacer(10);
 
@@ -419,6 +488,74 @@ async function buildUsualGui(widget, token) {
         let updatedAt = addStyledText(widget, 't: ' + timeFormatter.string(new Date()), updatedAtFont);
         updatedAt.centerAlignText();
     }
+}
+
+async function buildLockScreenWidgetHeader(widget) {
+    let mainStack = widget.addStack();
+    const logo = await getHbLogo();
+    const imgWidget = mainStack.addImage(logo);
+    imgWidget.imageSize = new Size(14, 14);
+    addStyledText(mainStack, CONFIGURATION.widgetTitle, headerFont);
+}
+
+async function buildLockScreenWidgetBody(widget, homeBridgeStatus) {
+    let verticalStack = widget.addStack();
+    verticalStack.layoutVertically();
+    buildStatusPanelInHeader(verticalStack, homeBridgeStatus);
+    await buildCpuRamInfoForLockScreen(verticalStack);
+}
+
+function overwriteSizesForLockScreen() {
+    infoFont = Font.systemFont(7);
+    infoPanelFont = Font.semiboldMonospacedSystemFont(7);
+    iconSize = 8;
+    CONFIGURATION.spacer_betweenStatusColumns = 2;
+    CONFIGURATION.spacer_beforeFirstStatusColumn = 2;
+    verticalSpacerInfoPanel = 1;
+    timeFormatter.dateFormat = 'HH:mm:ss';
+    updatedAtFont = Font.systemFont(6);
+}
+
+async function buildCpuRamInfoForLockScreen(verticalStack) {
+    let cpuData = await fetchData(cpuUrl());
+    let ramData = await fetchData(ramUrl());
+
+    verticalStack.addSpacer(CONFIGURATION.spacer_beforeFirstStatusColumn);
+    let statusInfo = verticalStack.addStack();
+    let cpuInfos = statusInfo.addStack();
+
+    let cpuFirstColumn = cpuInfos.addStack();
+    cpuFirstColumn.layoutVertically();
+    addStyledText(cpuFirstColumn, 'CPU:', infoFont);
+    cpuInfos.addSpacer(2);
+
+    let cpuSecondColumn = cpuInfos.addStack();
+    cpuSecondColumn.layoutVertically();
+    addStyledText(cpuSecondColumn, getAsRoundedString(cpuData.currentLoad, 1) + '%', infoFont);
+    cpuSecondColumn.addSpacer(2);
+
+    let temperatureString = getTemperatureString(cpuData?.cpuTemperature.main);
+    if (temperatureString) {
+        addStyledText(cpuSecondColumn, temperatureString, infoFont);
+    }
+
+    cpuInfos.addSpacer(17);
+
+    let ramInfos = statusInfo.addStack();
+    let usedRamText = getUsedRamString(ramData);
+
+    let ramFirstColumn = cpuInfos.addStack();
+    ramFirstColumn.layoutVertically();
+    addStyledText(ramFirstColumn, 'RAM:', infoFont);
+    cpuInfos.addSpacer(2);
+    ramFirstColumn.addSpacer(2);
+
+    let ramSecondColumn = cpuInfos.addStack();
+    ramSecondColumn.layoutVertically();
+    addStyledText(ramSecondColumn, usedRamText + '%', infoFont);
+    ramSecondColumn.addSpacer(5);
+
+    addStyledText(ramSecondColumn, '  t: ' + timeFormatter.string(new Date()), updatedAtFont);
 }
 
 function addUpdatableElement(stackToAdd, elementTitle, versionCurrent, versionLatest) {
@@ -513,12 +650,6 @@ function addStyledText(stackToAddTo, text, font) {
     return textHandle;
 }
 
-function addTitleAboveChartToWidget(column, titleText) {
-    let cpuLoadTitle = column.addText(titleText);
-    cpuLoadTitle.font = infoFont;
-    setTextColor(cpuLoadTitle);
-}
-
 function addChartToWidget(column, chartData) {
     let horizontalStack = column.addStack();
     horizontalStack.addSpacer(5);
@@ -551,14 +682,12 @@ function addChartToWidget(column, chartData) {
     addStyledText(xAxisStack, 't-10m', chartAxisFont);
     xAxisStack.addSpacer(75);
     addStyledText(xAxisStack, 't', chartAxisFont);
-
-    column.addSpacer(7);
 }
 
-function checkIfConfigFileParameterIsProvided(fm, givenParameter) {
+function checkIfConfigFileParameterIsProvided(givenParameter) {
     if (givenParameter.trim().startsWith('USE_CONFIG:') && givenParameter.trim().endsWith('.json')) {
         configurationFileName = givenParameter.trim().split('USE_CONFIG:')[1];
-        if (!fm.fileExists(getFilePath(configurationFileName, fm))) {
+        if (!fileManager.fileExists(getFilePath(configurationFileName))) {
             throw('Config file with provided name ' + configurationFileName + ' does not exist!\nCreate it first by running the script once providing the name in variable configurationFileName and maybe with variable overwritePersistedConfig set to true');
         }
         return true;
@@ -621,7 +750,7 @@ async function getAuthToken() {
     return authData.access_token;
 }
 
-async function fetchData(token, url) {
+async function fetchData(url) {
     let req = new Request(url);
     req.timeoutInterval = CONFIGURATION.requestTimeoutInterval;
     let headers = {
@@ -638,32 +767,32 @@ async function fetchData(token, url) {
     return result;
 }
 
-async function getHomebridgeStatus(token) {
-    const statusData = await fetchData(token, hbStatusUrl());
+async function getOverallStatus() {
+    const statusData = await fetchData(overallStatusUrl());
     if (statusData === undefined) {
         return undefined;
     }
     return statusData.status === 'up';
 }
 
-async function getHomebridgeVersionInfos(token) {
+async function getHomebridgeVersionInfos() {
     if (CONFIGURATION.pluginsOrSwUpdatesToIgnore.includes('HOMEBRIDGE_UTD')) {
         log('You configured Homebridge to not be checked for updates. Widget will show that it\'s UTD!');
         return {updateAvailable: false};
     }
-    const hbVersionData = await fetchData(token, hbVersionUrl());
+    const hbVersionData = await fetchData(hbVersionUrl());
     if (hbVersionData === undefined) {
         return undefined;
     }
     return hbVersionData;
 }
 
-async function getNodeJsVersionInfos(token) {
+async function getNodeJsVersionInfos() {
     if (CONFIGURATION.pluginsOrSwUpdatesToIgnore.includes('NODEJS_UTD')) {
         log('You configured Node.js to not be checked for updates. Widget will show that it\'s UTD!');
         return {updateAvailable: false};
     }
-    const nodeJsData = await fetchData(token, nodeJsUrl());
+    const nodeJsData = await fetchData(nodeJsUrl());
     if (nodeJsData === undefined) {
         return undefined;
     }
@@ -671,9 +800,9 @@ async function getNodeJsVersionInfos(token) {
     return nodeJsData;
 }
 
-async function getPluginVersionInfos(token) {
-    const pluginsData = await fetchData(token, pluginsUrl());
-    if (pluginsData === undefined || pluginsData.statusCode === 403) {
+async function getPluginVersionInfos() {
+    const pluginsData = await fetchData(pluginsUrl());
+    if (pluginsData === undefined) {
         return undefined;
     }
     for (plugin of pluginsData) {
@@ -688,13 +817,13 @@ async function getPluginVersionInfos(token) {
     return {plugins: pluginsData, updateAvailable: false};
 }
 
-async function getUsedRamString(ramData) {
+function getUsedRamString(ramData) {
     if (ramData === undefined) return 'unknown';
     return getAsRoundedString(100 - 100 * ramData.mem.available / ramData.mem.total, 2);
 }
 
-async function getUptimesArray(token) {
-    const uptimeData = await fetchData(token, uptimeUrl());
+async function getUptimesArray() {
+    const uptimeData = await fetchData(uptimeUrl());
     if (uptimeData === undefined) return undefined;
 
     return [formatSeconds(uptimeData.time.uptime), formatSeconds(uptimeData.processUptime)];
@@ -721,28 +850,28 @@ async function loadImage(imgUrl) {
     return image;
 }
 
-async function getHbLogo(fm) {
-    let path = getFilePath(HB_LOGO_FILE_NAME, fm);
-    if (fm.fileExists(path)) {
-        const fileDownloaded = await fm.isFileDownloaded(path);
+async function getHbLogo() {
+    let path = getFilePath(CONFIGURATION.hbLogoFileName);
+    if (fileManager.fileExists(path)) {
+        const fileDownloaded = await fileManager.isFileDownloaded(path);
         if (!fileDownloaded) {
-            await fm.downloadFileFromiCloud(path);
+            await fileManager.downloadFileFromiCloud(path);
         }
-        return fm.readImage(path);
+        return fileManager.readImage(path);
     } else {
         // logo did not exist -> download it and save it for next time the widget runs
         const logo = await loadImage(CONFIGURATION.logoUrl);
-        fm.writeImage(path, logo);
+        fileManager.writeImage(path, logo);
         return logo;
     }
 }
 
-function getFilePath(fileName, fm) {
-    let dirPath = fm.joinPath(fm.documentsDirectory(), 'homebridgeStatus');
-    if (!fm.fileExists(dirPath)) {
-        fm.createDirectory(dirPath);
+function getFilePath(fileName) {
+    let dirPath = fileManager.joinPath(fileManager.documentsDirectory(), 'homebridgeStatus');
+    if (!fileManager.fileExists(dirPath)) {
+        fileManager.createDirectory(dirPath);
     }
-    return fm.joinPath(dirPath, fileName);
+    return fileManager.joinPath(dirPath, fileName);
 }
 
 function addNotAvailableInfos(widget, titleStack) {
@@ -780,7 +909,7 @@ function getMinString(arrayOfNumbers, decimals) {
 }
 
 function getTemperatureString(temperatureInCelsius) {
-    if (temperatureInCelsius === undefined || temperatureInCelsius < 0) return 'unknown';
+    if (temperatureInCelsius === undefined || temperatureInCelsius < 0) return undefined;
 
     if (CONFIGURATION.temperatureUnitConfig === 'FAHRENHEIT') {
         return getAsRoundedString(convertToFahrenheit(temperatureInCelsius), 1) + '°F';
@@ -814,13 +943,16 @@ function addStatusInfo(lineWidget, statusBool, shownText) {
     addStatusIcon(itemStack, statusBool);
     itemStack.addSpacer(2);
     let text = itemStack.addText(shownText);
-    text.font = Font.semiboldMonospacedSystemFont(10);
+    text.font = infoPanelFont;
     setTextColor(text);
 }
 
-async function handleNotifications(fm, hbRunning, hbUtd, pluginsUtd, nodeUtd) {
-    let path = getFilePath(NOTIFICATION_JSON_FILE_NAME, fm);
-    let state = await getPersistedObject(fm, path, NOTIFICATION_JSON_VERSION, INITIAL_NOTIFICATION_STATE, true);
+async function handleNotifications(hbRunning, hbUtd, pluginsUtd, nodeUtd) {
+    if (!CONFIGURATION.notificationEnabled) {
+        return;
+    }
+    let path = getFilePath(CONFIGURATION.notificationJsonFileName);
+    let state = await getPersistedObject(path, NOTIFICATION_JSON_VERSION, INITIAL_NOTIFICATION_STATE, true);
     let now = new Date();
     let shouldUpdateState = false;
     if (shouldNotify(hbRunning, state.hbRunning.status, state.hbRunning.lastNotified)) {
@@ -880,7 +1012,7 @@ async function handleNotifications(fm, hbRunning, hbUtd, pluginsUtd, nodeUtd) {
     }
 
     if (shouldUpdateState) {
-        persistObject(fm, state, path);
+        persistObject(state, path);
     }
 }
 
@@ -906,47 +1038,50 @@ function scheduleNotification(text) {
     not.schedule();
 }
 
-async function getPersistedObject(fm, path, versionToCheckAgainst, initialObjectToPersist, createIfNotExisting) {
-    if (fm.fileExists(path)) {
-        const fileDownloaded = await fm.isFileDownloaded(path);
+async function getPersistedObject(path, versionToCheckAgainst, initialObjectToPersist, createIfNotExisting) {
+    if (fileManager.fileExists(path)) {
+        const fileDownloaded = await fileManager.isFileDownloaded(path);
         if (!fileDownloaded) {
-            await fm.downloadFileFromiCloud(path);
+            await fileManager.downloadFileFromiCloud(path);
         }
         let raw, persistedObject;
         try {
-            raw = fm.readString(path);
+            raw = fileManager.readString(path);
             persistedObject = JSON.parse(raw);
         } catch (e) {
             // file corrupted -> remove it
-            fm.remove(path);
+            fileManager.remove(path);
         }
 
         if (persistedObject && (persistedObject.jsonVersion === undefined || persistedObject.jsonVersion < versionToCheckAgainst)) {
-            // the version of the json file is outdated -> remove it and recreate it
-            log('Unfortunately, the configuration structure changed and your old config is not compatible anymore. It is now removed and a new one is created with the initial configuration. ')
-            fm.remove(path);
+            log('Unfortunately, the configuration structure changed and your old config is not compatible anymore. It is now renamed, marked as deprecated and a new one is created with the initial configuration. ')
+            persistObject(persistedObject, getFilePath('DEPRECATED_' + configurationFileName));
+            fileManager.remove(path);
+            let migratedConfig = {...initialObjectToPersist, ...persistedObject};
+            migratedConfig.jsonVersion = CONFIGURATION_JSON_VERSION;
+            persistObject(migratedConfig, path);
+            return migratedConfig;
         } else {
             return persistedObject;
         }
     }
     if (createIfNotExisting) {
         // create a new state json
-        persistObject(fm, initialObjectToPersist, path);
+        persistObject(initialObjectToPersist, path);
     }
     return initialObjectToPersist;
 }
 
-function persistObject(fm, object, path) {
+function persistObject(object, path) {
     let raw = JSON.stringify(object, null, 2);
-    fm.writeString(path, raw);
+    fileManager.writeString(path, raw);
 }
 
 function addIcon(widget, name, color) {
     let sf = SFSymbol.named(name);
-    sf.applyFont(Font.heavySystemFont(50));
     let iconImage = sf.image;
     let imageWidget = widget.addImage(iconImage);
     imageWidget.resizable = true;
-    imageWidget.imageSize = new Size(13, 13);
+    imageWidget.imageSize = new Size(iconSize, iconSize);
     imageWidget.tintColor = color;
 }
