@@ -46,7 +46,7 @@ class Configuration {
     enableSiriFeedback = true; // when running script via Siri, she should speak the text that is defined below BUT might be bugged atm, i wrote the dev about it
 
     // logo is downloaded only the first time! It is saved in iCloud and then loaded from there everytime afterwards
-    logoUrl = 'https://github.com/homebridge/branding/blob/master/logos/homebridge-silhouette-round-white.png?raw=true';
+    logoUrl = 'https://raw.githubusercontent.com/homebridge/branding/latest/logos/homebridge-silhouette-round-white.png';
 
     // icons:
     icon_statusGood = 'checkmark.circle.fill'; // can be any SFSymbol
