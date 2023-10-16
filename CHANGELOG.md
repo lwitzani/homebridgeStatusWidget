@@ -1,5 +1,8 @@
 I try to list the changes i make in this changelog:
 
+#16.10.2023 13:00
+- switched the source URL for the homebridge logo because the file does not exist anymore at the old location
+
 #16.11.2022 20:00
 - added support for iOS16 lockscreen widgets (they are much more smaller)
 - there are now more properties persisted in the CONFIGURATION. The old config is migrated.
