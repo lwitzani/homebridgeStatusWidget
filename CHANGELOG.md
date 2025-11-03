@@ -1,5 +1,10 @@
 I try to list the changes i make in this changelog:
 
+#3.11.2025 21:30
+- fixed widget showing that homebridge crashed when using homebridge-config-ui-x 5.9.0 or greater
+- reason was because the UI server changed the returned status from 'up' to 'ok'
+- https://github.com/homebridge/homebridge-config-ui-x/commit/540ed70569518e201d280647f83f8c273ba37354
+
 #16.10.2023 13:00
 - switched the source URL for the homebridge logo because the file does not exist anymore at the old location
 

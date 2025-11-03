@@ -772,7 +772,7 @@ async function getOverallStatus() {
     if (statusData === undefined) {
         return undefined;
     }
-    return statusData.status === 'up';
+    return statusData.status === 'ok' || statusData.status === 'up';
 }
 
 async function getHomebridgeVersionInfos() {
