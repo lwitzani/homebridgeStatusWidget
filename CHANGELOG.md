@@ -1,5 +1,9 @@
 I try to list the changes i make in this changelog:
 
+#23.12.2025 20:00
+- now default icons are without fill
+- hopefully centered the widget on most screens
+
 #3.11.2025 21:30
 - fixed widget showing that homebridge crashed when using homebridge-config-ui-x 5.9.0 or greater
 - reason was because the UI server changed the returned status from 'up' to 'ok'

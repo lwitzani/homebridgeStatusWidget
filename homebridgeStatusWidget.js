@@ -49,11 +49,11 @@ class Configuration {
     logoUrl = 'https://raw.githubusercontent.com/homebridge/branding/latest/logos/homebridge-silhouette-round-white.png';
 
     // icons:
-    icon_statusGood = 'checkmark.circle.fill'; // can be any SFSymbol
+    icon_statusGood = 'checkmark.circle'; // can be any SFSymbol
     icon_colorGood = '#' + Color.green().hex; // must have form like '#FFFFFF'
-    icon_statusBad = 'exclamationmark.triangle.fill'; // can be any SFSymbol
+    icon_statusBad = 'exclamationmark.triangle'; // can be any SFSymbol
     icon_colorBad = '#' + Color.red().hex;// must have form like '#FFFFFF'
-    icon_statusUnknown = 'questionmark.circle.fill'; // can be any SFSymbol
+    icon_statusUnknown = 'questionmark.circle'; // can be any SFSymbol
     icon_colorUnknown = '#' + Color.yellow().hex; // must have form like '#FFFFFF'
 
     // internationalization:
@@ -91,7 +91,7 @@ class Configuration {
 
     siriGui_title_update_available = 'Available Updates:';
     siriGui_title_all_UTD = 'Everything is up to date!';
-    siriGui_icon_version = 'arrow.right.square.fill'; // can be any SFSymbol
+    siriGui_icon_version = 'arrow.right.square'; // can be any SFSymbol
     siriGui_icon_version_color = '#' + Color.blue().hex; // must have form like '#FFFFFF'
     siri_spokenAnswer_update_available = 'At least one update is available';
     siri_spokenAnswer_all_UTD = 'Everything is up to date';
@@ -124,7 +124,7 @@ const nodeJsUrl = () => CONFIGURATION.hbServiceMachineBaseUrl + '/api/status/nod
 
 
 const timeFormatter = new DateFormatter();
-const maxLineWidth = 300; // if layout doesn't look good for you,
+const maxLineWidth = 350; // if layout doesn't look good for you,
 const normalLineHeight = 35; // try to tweak the (font-)sizes & remove/add spaces below
 let headerFont, infoFont, chartAxisFont, updatedAtFont, token, fileManager;
 
